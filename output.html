@@ -1,2 +1,103 @@
-<html><body><h1>Today's Headlines</h1><ol><li>Rubio says Cuba is threat to US as Havana accuses him of 'lies'</li><li>Three ways Cuba crisis could play out  after US indictment of Raúl Castro</li><li>India has a new political superstar - a cockroach</li><li>'No means no': Greenlanders protest against Trump outside new US consulate</li><li>An Indian bride dies. Rival claims of murder and suicide set off media frenzy</li><li>US to send 5,000 more troops to Poland, Trump says</li><li>Record 274 climbers scale Everest via Nepal in one day</li><li>Jailed Vietnamese tycoon's Birkin bags sell for more than $550K</li><li>Russia and China condemn US over indictment of former Cuban leader</li><li>Sacred hall housing 'eternal flame' in Japan destroyed by fire</li></ol></body></html>
-output.html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Today's Headlines</title>
+  <style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --border: rgba(0, 0, 0, 0.06);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f10;
+      --card: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #98989d;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+      --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                 Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 64px 24px 96px; }
+  header {
+    margin-bottom: 40px;
+  }
+  header h1 {
+    font-size: 36px; font-weight: 700; letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+  header .meta {
+    font-size: 14px; color: var(--muted);
+  }
+  .feed { display: flex; flex-direction: column; gap: 12px; }
+  article {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  article:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+  article a {
+    color: inherit; text-decoration: none;
+    display: block;
+  }
+  article a:hover .title { text-decoration: underline; text-decoration-thickness: 1px; }
+  .title {
+    font-size: 18px; font-weight: 600;
+    margin-top: 10px;
+    letter-spacing: -0.01em;
+  }
+  /* 来源徽章:浅色底 + 同色系深字,比纯色块更克制 */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge.bbc      { background: rgba(187, 25, 25, 0.12);  color: #bb1919; }
+  .badge.npr      { background: rgba(43, 108, 176, 0.12); color: #2b6cb0; }
+  .badge.guardian { background: rgba(5, 41, 98, 0.14);    color: #052962; }
+  @media (prefers-color-scheme: dark) {
+    .badge.bbc      { background: rgba(255, 90, 90, 0.18);  color: #ff8a8a; }
+    .badge.npr      { background: rgba(120, 180, 255, 0.18); color: #8ab8f0; }
+    .badge.guardian { background: rgba(140, 180, 255, 0.18); color: #a8c3f0; }
+  }
+  footer {
+    margin-top: 56px; text-align: center;
+    color: var(--muted); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Today's Headlines</h1>
+      <div class="meta">15 stories from BBC, NPR &amp; The Guardian &middot; 2026-05-22 13:52</div>
+    </header>
+    <main class="feed"><article><a href="https://www.bbc.com/news/articles/ckgpzwkn5jko" target="_blank" rel="noopener"><span class="badge bbc">BBC</span><div class="title">Rubio says Cuba is threat to US as Havana accuses him of &#x27;lies&#x27;</div></a></article><article><a href="https://www.npr.org/2026/05/22/nx-s1-5831001/un-concerned-afghan-taliban-law-child-marriage" target="_blank" rel="noopener"><span class="badge npr">NPR</span><div class="title">UN gravely concerned by an Afghan Taliban law that has provisions on child marriage</div></a></article><article><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="badge guardian">Guardian</span><div class="title">‘I want to hit 100’ Derek Jacobi on Aids, ageing and failing to boil an egg</div></a></article><article><a href="https://www.bbc.com/news/articles/ckgplwg3xk3o" target="_blank" rel="noopener"><span class="badge bbc">BBC</span><div class="title">Three ways Cuba crisis could play out after US indictment of Raúl Castro</div></a></article><article><a href="https://www.npr.org/2026/05/22/g-s1-123596/trump-sending-5-000-troops-to-poland" target="_blank" rel="noopener"><span class="badge npr">NPR</span><div class="title">Trump says he&#x27;s sending 5,000 more troops to Poland</div></a></article><article><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="badge guardian">Guardian</span><div class="title">Experience We found a baby – now he’s our 26-year-old son</div></a></article><article><a href="https://www.bbc.com/news/articles/clype0x7pkgo" target="_blank" rel="noopener"><span class="badge bbc">BBC</span><div class="title">Russia and China condemn US over indictment of former Cuban leader</div></a></article><article><a href="https://www.npr.org/2026/05/22/g-s1-123592/republicans-call-off-vote-on-iran-war-resolution" target="_blank" rel="noopener"><span class="badge npr">NPR</span><div class="title">Republicans call off vote on Iran war resolution that was on the verge of passing</div></a></article><article><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="badge guardian">Guardian</span><div class="title">&#x27;Like having big sisters’ Girls who survived Southport attack meet again</div></a></article><article><a href="https://www.bbc.com/news/videos/ckgpxp9wlqpo" target="_blank" rel="noopener"><span class="badge bbc">BBC</span><div class="title">Sacred hall housing &#x27;eternal flame&#x27; in Japan destroyed by fire</div></a></article><article><a href="https://www.npr.org/2026/05/22/nx-s1-5830999/rubio-diplomacy-cuba-trump-military-action" target="_blank" rel="noopener"><span class="badge npr">NPR</span><div class="title">Rubio doubtful of diplomacy with Cuba as Trump raises new threat of military action</div></a></article><article><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="badge guardian">Guardian</span><div class="title">Pacific islands Why they&#x27;re uniquely vulnerable to the oil crisis</div></a></article><article><a href="https://www.bbc.com/news/articles/czd2q140my1o" target="_blank" rel="noopener"><span class="badge bbc">BBC</span><div class="title">An Indian bride dies. Rival claims of murder and suicide set off media frenzy</div></a></article><article><a href="https://www.npr.org/2026/05/21/g-s1-123547/nascar-champ-kyle-busch-dies" target="_blank" rel="noopener"><span class="badge npr">NPR</span><div class="title">NASCAR superstar Kyle Busch dies at 41 after hospitalization with &#x27;severe illness&#x27;</div></a></article><article><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="badge guardian">Guardian</span><div class="title">Gaby Hinsliff double quotation mark What the Married at First Sight rape claims tell us</div></a></article></main>
+    <footer>Generated by fetch_news.py</footer>
+  </div>
+</body>
+</html>
