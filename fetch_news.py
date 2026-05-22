@@ -21,5 +21,31 @@ def fetch_headlines():
 
 
 if __name__ == "__main__":
-    for i, title in enumerate(fetch_headlines()[:10], 1):
+    # 先调用函数,把结果存进 titles 变量
+    titles = fetch_headlines()[:10]
+    
+    # 打印到终端
+    for i, title in enumerate(titles, 1):
         print(f"{i:2}. {title}")
+    
+    # 生成 HTML 文件
+    html = "<html><body><h1>Today's Headlines</h1><ol>"
+    for title in titles:
+        html += f"<li>{title}</li>"
+    html += "</ol></body></html>"
+    
+    with open("output.html", "w", encoding="utf-8") as f:
+        f.write(html)
+    
+    print("\n✅ Saved to output.html")
+
+# 生成 HTML 文件
+html = "<html><body><h1>Today's Headlines</h1><ol>"
+for title in headlines[:10]:
+    html += f"<li>{title}</li>"
+html += "</ol></body></html>"
+
+with open("output.html", "w", encoding="utf-8") as f:
+    f.write(html)
+
+print("\n✅ Saved to output.html")
