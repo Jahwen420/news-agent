@@ -2,6 +2,7 @@
 import os
 import re
 import json
+from concurrent.futures import ThreadPoolExecutor
 from difflib import SequenceMatcher
 from urllib.parse import urljoin
 import requests
@@ -97,6 +98,39 @@ def fetch_scmp():
     # SCMP 用 h2(主推) + h3(次要列表)
     return _collect(_get_soup("https://www.scmp.com/"),
                     "https://www.scmp.com", ["h2", "h3"], "SCMP")
+
+
+# ─── Open Graph 缩略图 ──────────────────────────────────────────────────────
+def fetch_og_image(url, timeout=5):
+    """请求文章页,从 <meta og:image> / <meta twitter:image> 拿封面 URL。
+
+    失败一律返回 None,不抛错(在并发池里抛错会污染结果)。
+    """
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+        if r.status_code != 200:
+            return None
+        soup = BeautifulSoup(r.text, "html.parser")
+        for attrs in [{"property": "og:image"},
+                      {"name": "twitter:image"},
+                      {"property": "og:image:url"}]:
+            tag = soup.find("meta", attrs=attrs)
+            if tag and tag.get("content"):
+                return tag["content"].strip()
+    except Exception:
+        pass
+    return None
+
+
+def fetch_og_images(urls, max_workers=10, timeout=5):
+    """并发抓多个 URL 的 og:image。返回与输入等长的 list,失败位置为 None。
+
+    每个请求 5s 超时;10 个并发 → 50 条最坏情况 25s 左右,通常 5-10s。
+    """
+    if not urls:
+        return []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        return list(pool.map(lambda u: fetch_og_image(u, timeout), urls))
 
 
 def _norm(s): return " ".join(s.lower().split())
