@@ -160,21 +160,43 @@
     font-size: 10px; font-weight: 700;
     letter-spacing: 0.5px; text-transform: uppercase;
   }
-  .badge.bbc      { background: rgba(187, 25, 25, 0.12);  color: #bb1919; }
-  .badge.npr      { background: rgba(43, 108, 176, 0.12); color: #2b6cb0; }
-  .badge.guardian { background: rgba(5, 41, 98, 0.14);    color: #052962; }
+  .badge.bbc           { background: rgba(187, 25, 25, 0.12);  color: #bb1919; }
+  .badge.npr           { background: rgba(43, 108, 176, 0.12); color: #2b6cb0; }
+  .badge.guardian      { background: rgba(5, 41, 98, 0.14);    color: #052962; }
+  /* Nikkei Asia 用品牌深红/栗色;SCMP 用品牌金黄 */
+  .badge.nikkei-asia   { background: rgba(140, 30, 40, 0.13);  color: #8c1e28; }
+  .badge.scmp          { background: rgba(196, 145, 0, 0.18);  color: #8a6500; }
   @media (prefers-color-scheme: dark) {
-    .badge.bbc      { background: rgba(255, 90, 90, 0.18);  color: #ff8a8a; }
-    .badge.npr      { background: rgba(120, 180, 255, 0.18); color: #8ab8f0; }
-    .badge.guardian { background: rgba(140, 180, 255, 0.18); color: #a8c3f0; }
+    .badge.bbc         { background: rgba(255, 90, 90, 0.18);   color: #ff8a8a; }
+    .badge.npr         { background: rgba(120, 180, 255, 0.18); color: #8ab8f0; }
+    .badge.guardian    { background: rgba(140, 180, 255, 0.18); color: #a8c3f0; }
+    .badge.nikkei-asia { background: rgba(255, 110, 120, 0.18); color: #ff9aa3; }
+    .badge.scmp        { background: rgba(255, 200, 70, 0.18);  color: #f0c656; }
   }
-  .importance, .topic-tag {
+  .importance, .topic-tag, .time-ago {
     font-size: 12px; font-weight: 600;
     color: var(--muted);
   }
   .importance.must-read     { color: var(--must-color); }
   .importance.worth-knowing { color: var(--worth-color); }
   .topic-tag { color: var(--soft); }
+  .time-ago  { color: var(--soft); font-weight: 500; }
+
+  /* Load more 按钮:跟 #refresh 共用视觉语言 */
+  .load-more-wrap { display: flex; justify-content: center; margin-top: 24px; }
+  .load-more {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px; font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .load-more:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); }
 
   .empty {
     text-align: center; padding: 60px 16px;
@@ -209,6 +231,8 @@
     <div class="chips" id="chips">
       <button class="chip active" data-filter="all">All</button>
       <button class="chip" data-filter="imp:must_read">🔥 Must Read</button>
+      <button class="chip" data-filter="imp:worth_knowing">📌 Worth Knowing</button>
+      <button class="chip" data-filter="imp:if_time">💡 If Time</button>
       <button class="chip" data-filter="topic:Geopolitics">🌍 Geopolitics</button>
       <button class="chip" data-filter="topic:Business">💰 Business</button>
       <button class="chip" data-filter="topic:Tech">💻 Tech</button>
@@ -238,7 +262,8 @@
     if_time:       ["💡", "If time",       "if-time"],
   };
 
-  const state = { articles: [], filter: "all", refreshing: false };
+  const PAGE_SIZE = 15;
+  const state = { articles: [], filter: "all", visible: PAGE_SIZE, refreshing: false };
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
@@ -252,6 +277,24 @@
     t._timer = setTimeout(() => t.classList.remove("show"), 3000);
   }
 
+  // ─── 相对时间格式化:无依赖,粒度 m/h/yesterday/d/绝对日期 ──────────────
+  function relativeTime(iso) {
+    if (!iso) return "";
+    const t = new Date(iso).getTime();
+    if (isNaN(t)) return "";
+    const diff = Date.now() - t;
+    if (diff < 0) return "just now";
+    const min = Math.floor(diff / 60000);
+    if (min < 1)  return "just now";
+    if (min < 60) return min + "m ago";
+    const hr = Math.floor(min / 60);
+    if (hr < 24)  return hr + "h ago";
+    const day = Math.floor(hr / 24);
+    if (day === 1) return "yesterday";
+    if (day < 7)   return day + "d ago";
+    return new Date(iso).toLocaleDateString();
+  }
+
   function filterArticles() {
     const f = state.filter;
     if (f === "all") return state.articles;
@@ -263,11 +306,14 @@
   function renderCard(a) {
     const [iE, iL, iC] = IMP[a.importance] || ["", "", ""];
     const tE = TOPIC_EMOJI[a.topic] || "";
+    const rel = relativeTime(a.published_at);
+    const timeHtml = rel ? `<span class="time-ago">· ${esc(rel)}</span>` : "";
     return `
       <article>
         <div class="meta-row">
-          <span class="badge ${esc((a.source||"").toLowerCase())}">${esc(a.source)}</span>
+          <span class="badge ${esc((a.source||"").toLowerCase().replace(/\s+/g, "-"))}">${esc(a.source)}</span>
           <span class="importance ${iC}">${iE} ${esc(iL)}</span>
+          ${timeHtml}
           <span class="topic-tag">${tE} ${esc(a.topic)}</span>
         </div>
         <a href="${esc(a.url)}" target="_blank" rel="noopener">
@@ -278,20 +324,33 @@
   }
 
   function render() {
-    const items = filterArticles();
+    const filtered = filterArticles();
     const list = $("#list");
-    if (!items.length) {
+    if (!filtered.length) {
       const msg = state.articles.length
         ? "No articles match this filter."
         : "No data yet — click 🔄 to fetch.";
       list.innerHTML = `<div class="empty">${msg}</div>`;
       return;
     }
-    list.innerHTML = items.map(renderCard).join("");
+    const shown = filtered.slice(0, state.visible);
+    const remaining = filtered.length - shown.length;
+    const more = remaining > 0
+      ? `<div class="load-more-wrap"><button class="load-more" id="loadMore">Load ${Math.min(PAGE_SIZE, remaining)} more (${remaining} left)</button></div>`
+      : "";
+    list.innerHTML = shown.map(renderCard).join("") + more;
+    const btn = document.getElementById("loadMore");
+    if (btn) btn.addEventListener("click", loadMore);
+  }
+
+  function loadMore() {
+    state.visible += PAGE_SIZE;
+    render();
   }
 
   function setFilter(f) {
     state.filter = f;
+    state.visible = PAGE_SIZE;  // 切换 filter 时重置分页
     document.querySelectorAll(".chip").forEach(c => {
       c.classList.toggle("active", c.dataset.filter === f);
     });

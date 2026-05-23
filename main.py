@@ -5,7 +5,6 @@
 然后访问 http://localhost:8000
 """
 import json
-import time
 from datetime import datetime
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
@@ -13,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from fetcher import fetch_all, analyze
+from fetcher import fetch_all, analyze_batch
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
@@ -52,22 +51,19 @@ def get_news():
 
 @app.post("/api/refresh")
 def refresh():
-    """触发抓取 + 分析,落盘到 cache.json,同步返回新数据。
+    """触发抓取 + 批量分析,落盘到 cache.json,同步返回新数据。
 
-    同步执行以便前端直接拿到结果;~15 条 × 7s sleep ≈ 2.5 分钟。
-    后面要做后台异步可以改用 BackgroundTasks + 轮询状态。
+    现在用 analyze_batch 一次调用拿全部摘要/分类,~50 条总耗时 5-10 秒。
     """
     try:
         headlines, statuses = fetch_all()
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Fetch failed: {e}")
 
-    total = len(headlines)
-    for i, item in enumerate(headlines, 1):
-        if i > 1:
-            time.sleep(7)  # Gemini 限速
-        print(f"Analyzing {i}/{total}...", flush=True)
-        item.update(analyze(item["title"]))
+    print(f"Analyzing {len(headlines)} headlines in one batch...", flush=True)
+    analyses = analyze_batch(headlines)
+    for item, analysis in zip(headlines, analyses):
+        item.update(analysis)
 
     data = {
         "articles": headlines,
