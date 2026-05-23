@@ -247,6 +247,34 @@ def analyze(title):
         return dict(FALLBACK_ANALYSIS)
 
 
+LANG_NAMES = {"zh": "Simplified Chinese", "ja": "Japanese"}
+
+
+def translate_article(title, summary, target_lang):
+    """单次 Gemini 调用,返回 (title_translated, summary_translated)。失败返回 None。"""
+    lang_name = LANG_NAMES.get(target_lang)
+    if not lang_name:
+        return None
+    prompt = (
+        f"Translate the following news headline and summary into natural, "
+        f"concise {lang_name}. Return ONLY a JSON object with keys "
+        f"'title_translated' and 'summary_translated', no other text.\n\n"
+        f"Headline: {title}\n"
+        f"Summary: {summary}"
+    )
+    try:
+        resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        data = json.loads(_strip_code_fence(resp.text or ""))
+        title_t = (data.get("title_translated") or "").strip()
+        summary_t = (data.get("summary_translated") or "").strip()
+        if not title_t or not summary_t:
+            return None
+        return title_t, summary_t
+    except Exception as e:
+        print(f"[translate_article] failed for {target_lang}: {e}", flush=True)
+        return None
+
+
 def analyze_batch(articles):
     """一次 Gemini 调用分析全部标题。
 

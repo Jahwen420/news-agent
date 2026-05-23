@@ -66,6 +66,36 @@
     margin-top: 6px;
     letter-spacing: -0.005em;
   }
+  /* 头部右侧:语言切换 + 刷新,横排,移动端不挤压 */
+  .actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .lang-switcher {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .lang-switcher button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px; font-weight: 600;
+    padding: 6px 10px;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .lang-switcher button:hover { color: var(--text); }
+  .lang-switcher button.active {
+    background: var(--chip-active);
+    color: var(--chip-active-text);
+  }
+  @media (max-width: 400px) {
+    .lang-switcher button { padding: 6px 8px; font-size: 11px; }
+  }
+
   /* 带文字的描边按钮:移动端也保留 "Refresh" label,不退化为图标 */
   #refresh {
     display: inline-flex; align-items: center;
@@ -184,11 +214,57 @@
     margin-top: 8px; line-height: 1.5;
   }
 
-  /* 底部行:仅 must_read / worth_knowing 才渲染,if_time 整段不输出 */
-  .card-bottom { margin-top: 10px; }
+  /* 底部行:始终渲染(放 Translate 按钮);importance 只对 must_read / worth_knowing 显示 */
+  .card-bottom {
+    margin-top: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
   .importance { font-size: 12px; font-weight: 600; }
   .importance.must-read     { color: var(--must-color); }
   .importance.worth-knowing { color: var(--worth-color); }
+  .importance-spacer { flex: 1; }  /* 没 importance 时占位,让 Translate 留在右侧 */
+
+  /* Translate / Show original:克制的文本按钮,不抢标题视线 */
+  .translate-wrap { position: relative; }
+  .translate-btn {
+    background: transparent; border: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; padding: 2px 0;
+    transition: color 0.15s ease;
+  }
+  .translate-btn:hover { color: var(--text); text-decoration: underline; }
+  .translate-btn:disabled { opacity: 0.55; cursor: wait; text-decoration: none; }
+
+  /* EN UI 下点 Translate 弹出的小菜单(中文 / 日本語) */
+  .translate-menu {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow-hover);
+    padding: 4px;
+    z-index: 50;
+    display: flex; flex-direction: column;
+    gap: 2px;
+    min-width: 110px;
+  }
+  .translate-menu button {
+    background: transparent; border: none;
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-family: inherit;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .translate-menu button:hover { background: var(--bg); }
 
   /* 缩略图:右侧固定方块,object-fit:cover 裁剪 */
   .thumb {
@@ -284,54 +360,68 @@
 <div class="wrap">
   <header>
     <div class="title-row">
-      <h1>Today's Headlines</h1>
-      <button id="refresh" type="button" aria-label="Refresh news">
-        <span class="rr-icon" aria-hidden="true">🔄</span>
-        <span class="rr-label">Refresh</span>
-      </button>
+      <h1 id="pageTitle">Today's Headlines</h1>
+      <div class="actions">
+        <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="zh">中</button>
+          <button type="button" data-lang="ja">日</button>
+        </div>
+        <button id="refresh" type="button" aria-label="Refresh news">
+          <span class="rr-icon" aria-hidden="true">🔄</span>
+          <span class="rr-label">Refresh</span>
+        </button>
+      </div>
     </div>
-    <div class="meta" id="metaLine">Loading…</div>
+    <div class="meta" id="metaLine"></div>
   </header>
 
   <nav class="filter-bar" aria-label="Filters">
-    <div class="chips" id="chips">
-      <button class="chip active" data-filter="all">All</button>
-      <button class="chip" data-filter="topic:Geopolitics">🌍 Geopolitics</button>
-      <button class="chip" data-filter="topic:Business">💰 Business</button>
-      <button class="chip" data-filter="topic:Tech">💻 Tech</button>
-      <button class="chip" data-filter="topic:China">🇨🇳 China</button>
-      <button class="chip" data-filter="topic:Japan">🇯🇵 Japan</button>
-      <button class="chip" data-filter="topic:Science">🔬 Science</button>
-      <button class="chip" data-filter="topic:Other">📰 Other</button>
-    </div>
+    <div class="chips" id="chips"></div>
   </nav>
 
   <main class="feed" id="list">
-    <div class="empty">Loading…</div>
+    <div class="empty" id="initialEmpty"></div>
   </main>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="/static/i18n.js"></script>
 <script>
-  // ─── 常量映射:importance 的展示 ────────────────────────────────────────
+  // ─── 表 + 静态映射 ──────────────────────────────────────────────────────
+  // emoji + class 留在 JS,文字 label 走 i18n
   const IMP = {
-    must_read:     ["🔥", "Must read",     "must-read"],
-    worth_knowing: ["📌", "Worth knowing", "worth-knowing"],
-    if_time:       ["💡", "If time",       "if-time"],
+    must_read:     ["🔥", "importanceMustRead",     "must-read"],
+    worth_knowing: ["📌", "importanceWorthKnowing", "worth-knowing"],
+    if_time:       ["💡", "importanceIfTime",       "if-time"],
   };
-  // 用于跨主题/筛选视图的稳定重要性排序
   const IMP_RANK = { must_read: 0, worth_knowing: 1, if_time: 2 };
 
-  // AllSides Media Bias Chart 评级,前端展示用(不污染数据层)
+  // AllSides 评级 → 英文字符串。展示时通过 BIAS_I18N 拿到 t() key
   const SOURCE_BIAS = {
-    "BBC":         "Lean Left",
-    "NPR":         "Lean Left",
-    "Guardian":    "Left",
-    "Nikkei Asia": "Center",
-    "SCMP":        "Center",
+    "BBC": "Lean Left", "NPR": "Lean Left", "Guardian": "Left",
+    "Nikkei Asia": "Center", "SCMP": "Center",
   };
-  const BIAS_TOOLTIP = "Political lean rating based on AllSides Media Bias Chart.";
+  const BIAS_I18N = {
+    "Left":       "biasLeft",
+    "Lean Left":  "biasLeanLeft",
+    "Center":     "biasCenter",
+    "Lean Right": "biasLeanRight",
+    "Right":      "biasRight",
+  };
+
+  // 筛选条配置:emoji 在 JS,文字 label 走 i18n key
+  const CHIPS = [
+    { filter: "all",                emoji: "",   key: "filterAll" },
+    { filter: "topic:Geopolitics",  emoji: "🌍", key: "topicGeopolitics" },
+    { filter: "topic:Business",     emoji: "💰", key: "topicBusiness" },
+    { filter: "topic:Tech",         emoji: "💻", key: "topicTech" },
+    { filter: "topic:China",        emoji: "🇨🇳", key: "topicChina" },
+    { filter: "topic:Japan",        emoji: "🇯🇵", key: "topicJapan" },
+    { filter: "topic:Science",      emoji: "🔬", key: "topicScience" },
+    { filter: "topic:Other",        emoji: "📰", key: "topicOther" },
+  ];
 
   const PAGE_SIZE = 15;
   const state = {
@@ -343,28 +433,38 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
     (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-  function toast(msg) {
-    const t = $("#toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove("show"), 3000);
+  // localStorage 里的"翻译态":{url: {lang, title, summary, orig_title, orig_summary}}
+  const TRANSLATED_KEY = "translated_articles";
+  function getTranslatedStates() {
+    try { return JSON.parse(localStorage.getItem(TRANSLATED_KEY) || "{}"); }
+    catch { return {}; }
+  }
+  function setTranslatedStates(s) {
+    try { localStorage.setItem(TRANSLATED_KEY, JSON.stringify(s)); }
+    catch { /* quota — 忽略 */ }
   }
 
-  // ─── 相对时间格式化:统一 13m / 3h / 2d 风格 ────────────────────────────
+  function toast(msg) {
+    const el = $("#toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove("show"), 3000);
+  }
+
+  // ─── 相对时间:通过 t('timeAgo', n, unit) 走当前语言 ─────────────────────
   function relativeTime(iso) {
     if (!iso) return "";
-    const t = new Date(iso).getTime();
-    if (isNaN(t)) return "";
-    const diff = Date.now() - t;
-    if (diff < 0) return "just now";
+    const ms = new Date(iso).getTime();
+    if (isNaN(ms)) return "";
+    const diff = Date.now() - ms;
+    if (diff < 60000) return t("justNow");
     const min = Math.floor(diff / 60000);
-    if (min < 1)  return "just now";
-    if (min < 60) return min + "m ago";
+    if (min < 60) return t("timeAgo", min, "m");
     const hr = Math.floor(min / 60);
-    if (hr < 24)  return hr + "h ago";
+    if (hr < 24)  return t("timeAgo", hr, "h");
     const day = Math.floor(hr / 24);
-    if (day < 7)  return day + "d ago";
+    if (day < 7)  return t("timeAgo", day, "d");
     return new Date(iso).toLocaleDateString();
   }
 
@@ -373,7 +473,6 @@
     let arr = state.articles;
     if (f.startsWith("imp:"))        arr = arr.filter(a => a.importance === f.slice(4));
     else if (f.startsWith("topic:")) arr = arr.filter(a => a.topic === f.slice(6));
-    // 任何视图(All / 主题 / 重要性)都按 importance 排序;同级按 published_at 倒序
     return [...arr].sort((a, b) => {
       const ra = IMP_RANK[a.importance] ?? 3;
       const rb = IMP_RANK[b.importance] ?? 3;
@@ -384,37 +483,50 @@
     });
   }
 
+  // ─── 卡片渲染 ───────────────────────────────────────────────────────────
   function renderCard(a) {
-    const [iE, iL, iC] = IMP[a.importance] || ["", "", ""];
+    const [iE, iLabelKey, iC] = IMP[a.importance] || ["", "", ""];
     const bias = SOURCE_BIAS[a.source];
-    // published_at 缺失则不渲染时间(不留占位)
+    const biasLabel = bias ? t(BIAS_I18N[bias] || "biasCenter") : "";
     const rel = relativeTime(a.published_at);
     const timeHtml = rel ? `<span class="time-ago">${esc(rel)}</span>` : "";
-    // 来源 · 立场,中点分隔;i 按钮悬停看 AllSides 提示
     const biasPart = bias
-      ? ` · ${esc(bias)}<button class="bias-info" type="button" aria-label="About bias rating" data-tooltip="${esc(BIAS_TOOLTIP)}"><span>i</span></button>`
+      ? ` · ${esc(biasLabel)}<button class="bias-info" type="button" aria-label="About bias rating" data-tooltip="${esc(t("biasTooltip"))}"><span>i</span></button>`
       : "";
-    // 仅 must_read / worth_knowing 才显示底部重要性提示;if_time 整段不输出
+
+    // 翻译态:有就用 cached 内容,没就用原文
+    const states = getTranslatedStates();
+    const cached = states[a.url];
+    const displayTitle   = cached ? cached.title   : (a.title || "");
+    const displaySummary = cached ? cached.summary : (a.summary_en || "");
+    const translateLabel = cached ? t("showOriginal") : t("translate");
+
     const showImportance = a.importance === "must_read" || a.importance === "worth_knowing";
     const importanceHtml = showImportance
-      ? `<div class="card-bottom"><span class="importance ${iC}">${iE} ${esc(iL)}</span></div>`
-      : "";
-    // og:image 缺失则不渲染 <img>,卡片自然回退到无缩略图布局
+      ? `<span class="importance ${iC}">${iE} ${esc(t(iLabelKey))}</span>`
+      : `<span class="importance-spacer"></span>`;
+
     const thumbHtml = a.og_image
       ? `<img class="thumb" src="${esc(a.og_image)}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
       : "";
+
     return `
-      <article>
+      <article data-url="${esc(a.url)}">
         <div class="card-body">
           <div class="card-top">
             <span class="src-line">${esc(a.source)}${biasPart}</span>
             ${timeHtml}
           </div>
           <a href="${esc(a.url)}" target="_blank" rel="noopener">
-            <div class="title">${esc(a.title)}</div>
+            <div class="title">${esc(displayTitle)}</div>
           </a>
-          <div class="summary-en">${esc(a.summary_en)}</div>
-          ${importanceHtml}
+          <div class="summary-en">${esc(displaySummary)}</div>
+          <div class="card-bottom">
+            ${importanceHtml}
+            <span class="translate-wrap">
+              <button class="translate-btn ${cached ? "show-original" : ""}" type="button">${esc(translateLabel)}</button>
+            </span>
+          </div>
         </div>
         ${thumbHtml}
       </article>`;
@@ -424,20 +536,33 @@
     const filtered = filteredAndSorted();
     const list = $("#list");
     if (!filtered.length) {
-      const msg = state.articles.length
-        ? "No articles match this filter."
-        : "No data yet — click 🔄 to fetch.";
-      list.innerHTML = `<div class="empty">${msg}</div>`;
+      const msg = state.articles.length ? t("emptyFiltered") : t("emptyNoData");
+      list.innerHTML = `<div class="empty">${esc(msg)}</div>`;
       return;
     }
     const shown = filtered.slice(0, state.visible);
     const remaining = filtered.length - shown.length;
     const more = remaining > 0
-      ? `<div class="load-more-wrap"><button class="load-more" id="loadMore">Load more (${remaining} remaining)</button></div>`
+      ? `<div class="load-more-wrap"><button class="load-more" id="loadMore">${esc(t("loadMore", remaining))}</button></div>`
       : "";
     list.innerHTML = shown.map(renderCard).join("") + more;
-    const btn = document.getElementById("loadMore");
-    if (btn) btn.addEventListener("click", loadMore);
+
+    // 事件:Translate / Show original 用事件委托更稳,直接绑也行
+    list.querySelectorAll(".translate-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const card = btn.closest("article");
+        const url = card.dataset.url;
+        if (btn.classList.contains("show-original")) {
+          revertTranslation(url);
+        } else {
+          onTranslateClick(btn, url);
+        }
+      });
+    });
+
+    const lm = document.getElementById("loadMore");
+    if (lm) lm.addEventListener("click", loadMore);
   }
 
   function loadMore() {
@@ -445,25 +570,38 @@
     render();
   }
 
+  // ─── 筛选条:渲染 + 事件 ────────────────────────────────────────────────
+  function renderChips() {
+    const html = CHIPS.map(c => {
+      const label = (c.emoji ? c.emoji + " " : "") + t(c.key);
+      const active = c.filter === state.filter ? " active" : "";
+      return `<button class="chip${active}" data-filter="${esc(c.filter)}">${esc(label)}</button>`;
+    }).join("");
+    $("#chips").innerHTML = html;
+    document.querySelectorAll(".chip").forEach(c => {
+      c.addEventListener("click", () => setFilter(c.dataset.filter));
+    });
+  }
+
   function setFilter(f) {
     state.filter = f;
-    state.visible = PAGE_SIZE;  // 切换 filter 时重置分页
-    document.querySelectorAll(".chip").forEach(c => {
-      c.classList.toggle("active", c.dataset.filter === f);
-    });
+    state.visible = PAGE_SIZE;
+    renderChips();
     render();
   }
 
+  // ─── Header meta 行 ─────────────────────────────────────────────────────
   function setMetaLine({ count, lastRefreshed }) {
     const el = $("#metaLine");
     if (!lastRefreshed) {
-      el.textContent = "Last refreshed: never — click Refresh to load news";
+      el.textContent = t("headerNever");
       return;
     }
-    const rel = relativeTime(lastRefreshed) || "just now";
-    el.textContent = `Showing ${count} stor${count === 1 ? "y" : "ies"} from the past 24 hours · Last refreshed ${rel}`;
+    const rel = relativeTime(lastRefreshed) || t("justNow");
+    el.textContent = t("headerStats", count, rel);
   }
 
+  // ─── 取数据 ─────────────────────────────────────────────────────────────
   async function loadNews() {
     try {
       const r = await fetch("/api/news");
@@ -473,24 +611,21 @@
       setMetaLine({ count: state.articles.length, lastRefreshed: state.lastRefreshed });
       render();
     } catch (e) {
-      toast("Load failed: " + e.message);
+      toast(t("toastLoadFailed", e.message));
     }
   }
 
-  // ─── Refresh:POST 立即返回,前端用 polling 轮询 status ─────────────────
+  // ─── Refresh 按钮 + polling ────────────────────────────────────────────
   function setRefreshButton(busy) {
     const btn = $("#refresh");
     const label = btn.querySelector(".rr-label");
     btn.disabled = busy;
     btn.classList.toggle("spinning", busy);
-    label.textContent = busy ? "Refreshing…" : "Refresh";
+    label.textContent = busy ? t("refreshing") : t("refresh");
   }
 
   function stopPolling() {
-    if (state.pollTimer) {
-      clearInterval(state.pollTimer);
-      state.pollTimer = null;
-    }
+    if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
   }
 
   async function pollStatus() {
@@ -498,32 +633,27 @@
       const r = await fetch("/api/refresh/status");
       if (!r.ok) return;
       const s = await r.json();
-      if (s.status === "running") return;  // 继续轮询
+      if (s.status === "running") return;
       stopPolling();
       state.refreshing = false;
       setRefreshButton(false);
       if (s.status === "done") {
         await loadNews();
-        // 提示:新增数 + 任何挂掉的源
         const stats = s.stats || {};
         const failed = s.sources_failed || [];
         let msg;
         if (failed.length) {
-          msg = `Refreshed with partial data: ${failed.join(", ")} failed`;
+          msg = t("toastPartialFail", failed.join(", "));
         } else if (typeof stats.new === "number") {
-          msg = stats.new > 0
-            ? `Added ${stats.new} new article${stats.new === 1 ? "" : "s"}`
-            : "No new articles since last refresh";
+          msg = stats.new > 0 ? t("toastAddedNew", stats.new) : t("toastNoNew");
         } else {
-          msg = "Refreshed";
+          msg = t("toastRefreshed");
         }
         toast(msg);
       } else if (s.status === "error") {
-        toast("Refresh failed: " + (s.error || "unknown error"));
+        toast(t("toastRefreshFailed", s.error || "unknown error"));
       }
-    } catch (e) {
-      // 网络抖动,下一轮再试,不停止轮询
-    }
+    } catch (e) { /* 抖动,下一轮再试 */ }
   }
 
   async function doRefresh() {
@@ -533,13 +663,11 @@
       const r = await fetch("/api/refresh", { method: "POST" });
       if (r.status === 429) {
         const err = await r.json().catch(() => ({}));
-        const detail = err.detail || {};
-        toast(detail.error || "Rate limited. Slow down.");
+        toast((err.detail && err.detail.error) || t("toastRateLimited"));
         setRefreshButton(false);
         return;
       }
       if (r.status === 409) {
-        // 已经在跑(可能别处触发了),直接接管轮询
         state.refreshing = true;
         state.pollTimer = setInterval(pollStatus, 3000);
         return;
@@ -551,27 +679,144 @@
       state.refreshing = true;
       state.pollTimer = setInterval(pollStatus, 3000);
     } catch (e) {
-      toast("Refresh failed: " + e.message);
+      toast(t("toastRefreshFailed", e.message));
       setRefreshButton(false);
     }
   }
 
-  // 离开页面时停掉轮询,免得后台空跑;回来时如果还在 refreshing 就恢复
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      stopPolling();
-    } else if (state.refreshing && !state.pollTimer) {
-      pollStatus();  // 立即查一次
+    if (document.hidden) stopPolling();
+    else if (state.refreshing && !state.pollTimer) {
+      pollStatus();
       state.pollTimer = setInterval(pollStatus, 3000);
     }
   });
 
-  // ─── 事件绑定 + 启动 ────────────────────────────────────────────────────
-  document.querySelectorAll(".chip").forEach(c => {
-    c.addEventListener("click", () => setFilter(c.dataset.filter));
-  });
+  // ─── 翻译流:点击 → (en 选语种 / zh,ja 直接翻) → /api/translate → 渲染 ─
+  function onTranslateClick(btn, url) {
+    const lang = window.getUiLang();
+    if (lang === "zh" || lang === "ja") {
+      translateArticle(url, lang);
+      return;
+    }
+    // EN 模式:弹小菜单
+    document.querySelectorAll(".translate-menu").forEach(el => el.remove());
+    const menu = document.createElement("div");
+    menu.className = "translate-menu";
+    menu.innerHTML = `
+      <button type="button" data-lang="zh">${esc(t("pickChinese"))}</button>
+      <button type="button" data-lang="ja">${esc(t("pickJapanese"))}</button>
+    `;
+    btn.closest(".translate-wrap").appendChild(menu);
+    menu.querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.remove();
+        translateArticle(url, b.dataset.lang);
+      });
+    });
+    // 点外面关闭
+    setTimeout(() => {
+      document.addEventListener("click", function close(ev) {
+        if (!menu.contains(ev.target)) {
+          menu.remove();
+          document.removeEventListener("click", close);
+        }
+      });
+    }, 0);
+  }
+
+  async function translateArticle(url, lang) {
+    const card = document.querySelector(`article[data-url="${CSS.escape(url)}"]`);
+    if (!card) return;
+    const btn = card.querySelector(".translate-btn");
+    const titleEl = card.querySelector(".title");
+    const summaryEl = card.querySelector(".summary-en");
+    const origTitle = titleEl.textContent;
+    const origSummary = summaryEl.textContent;
+    btn.disabled = true;
+    btn.textContent = t("translating");
+    try {
+      const r = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ article_id: url, target_lang: lang }),
+      });
+      if (r.status === 429) {
+        const err = await r.json().catch(() => ({}));
+        toast((err.detail && err.detail.error) || t("toastRateLimited"));
+        return;
+      }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      const data = await r.json();
+      titleEl.textContent   = data.title_translated;
+      summaryEl.textContent = data.summary_translated;
+      // 持久化到 localStorage:刷新页面也保持翻译态
+      const states = getTranslatedStates();
+      states[url] = {
+        lang,
+        title: data.title_translated,
+        summary: data.summary_translated,
+        orig_title: origTitle,
+        orig_summary: origSummary,
+      };
+      setTranslatedStates(states);
+      btn.classList.add("show-original");
+      btn.textContent = t("showOriginal");
+    } catch (e) {
+      toast(t("toastTranslateFailed", e.message));
+      btn.textContent = t("translate");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function revertTranslation(url) {
+    const states = getTranslatedStates();
+    const cached = states[url];
+    if (!cached) return;
+    const card = document.querySelector(`article[data-url="${CSS.escape(url)}"]`);
+    if (card) {
+      card.querySelector(".title").textContent = cached.orig_title;
+      card.querySelector(".summary-en").textContent = cached.orig_summary;
+      const btn = card.querySelector(".translate-btn");
+      btn.classList.remove("show-original");
+      btn.textContent = t("translate");
+    }
+    delete states[url];
+    setTranslatedStates(states);
+  }
+
+  // ─── 语言切换:重渲染所有静态文案 + 卡片 + 筛选条 ───────────────────────
+  function applyI18n() {
+    document.title = t("pageTitle");
+    $("#pageTitle").textContent = t("pageTitle");
+    $("#refresh").querySelector(".rr-label").textContent =
+      state.refreshing ? t("refreshing") : t("refresh");
+    // 高亮当前激活的语言按钮
+    document.querySelectorAll("#langSwitcher button").forEach(b => {
+      b.classList.toggle("active", b.dataset.lang === window.getUiLang());
+    });
+    renderChips();
+    setMetaLine({ count: state.articles.length, lastRefreshed: state.lastRefreshed });
+    render();
+  }
+
+  function changeLang(lang) {
+    window.setUiLang(lang);
+    applyI18n();
+  }
+
+  // ─── 启动 ───────────────────────────────────────────────────────────────
   $("#refresh").addEventListener("click", doRefresh);
-  loadNews();
+  document.querySelectorAll("#langSwitcher button").forEach(b => {
+    b.addEventListener("click", () => changeLang(b.dataset.lang));
+  });
+  applyI18n();   // 应用当前语言到所有静态文案 + 筛选条
+  loadNews();    // 拉数据并渲染
 </script>
 </body>
 </html>

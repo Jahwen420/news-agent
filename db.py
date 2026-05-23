@@ -23,11 +23,18 @@ CREATE TABLE IF NOT EXISTS articles (
     summary_en   TEXT,
     topic        TEXT,
     importance   TEXT,
-    og_image     TEXT
+    og_image     TEXT,
+    title_zh     TEXT,           -- 按需翻译缓存
+    summary_zh   TEXT,
+    title_ja     TEXT,
+    summary_ja   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_fetched ON articles(fetched_at);
 CREATE INDEX IF NOT EXISTS idx_published ON articles(published_at);
 """
+
+# 翻译列白名单,用于 set_translation 防 SQL 注入
+_TRANSLATABLE_LANGS = {"zh", "ja"}
 
 # save 时填充缺省值,保证 named-param 插入不报 KeyError
 _DEFAULTS = {
@@ -48,10 +55,34 @@ def _conn():
 
 
 def init_db():
-    """启动时调一次,幂等。会按需 mkdir 父目录(支持 /data/news.db 这种挂载路径)。"""
+    """启动时调一次,幂等。建表 + 给老 DB 加新列(translation 列)。"""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _conn() as c:
         c.executescript(SCHEMA)
+        # 加列迁移:老 DB 升级,新 DB 由 CREATE 处理。SQLite 没 IF NOT EXISTS for ADD COLUMN
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(articles)").fetchall()}
+        for col in ("title_zh", "summary_zh", "title_ja", "summary_ja"):
+            if col not in cols:
+                c.execute(f"ALTER TABLE articles ADD COLUMN {col} TEXT")
+
+
+def get_article(url):
+    """按 URL 查一条文章(含所有翻译列)。找不到返回 None。"""
+    with _conn() as c:
+        row = c.execute("SELECT * FROM articles WHERE url = ?", (url,)).fetchone()
+        return dict(row) if row else None
+
+
+def set_translation(url, lang, title_translated, summary_translated):
+    """把 (title, summary) 翻译结果写回对应语言列。lang 走白名单。"""
+    if lang not in _TRANSLATABLE_LANGS:
+        raise ValueError(f"unsupported lang: {lang}")
+    with _conn() as c:
+        # 列名拼接安全:lang 已经过白名单
+        c.execute(
+            f"UPDATE articles SET title_{lang} = ?, summary_{lang} = ? WHERE url = ?",
+            (title_translated, summary_translated, url),
+        )
 
 
 def existing_urls(urls):

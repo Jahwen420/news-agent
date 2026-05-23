@@ -13,11 +13,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from fetcher import fetch_all, analyze_batch, fetch_og_images
+from fetcher import fetch_all, analyze_batch, fetch_og_images, translate_article
 from db import (
     init_db, existing_urls, save_articles,
     get_recent_articles, get_last_refreshed_at,
+    get_article, set_translation,
 )
 
 ROOT = Path(__file__).parent
@@ -112,10 +114,12 @@ def _run_refresh():
         )
 
 
-# ─── 简单内存 rate limit:每 IP 每分钟 5 次 ──────────────────────────────────
-_RATE_LIMIT = 5
+# ─── 内存 rate limit:每个 endpoint 独立 bucket,共享一把锁 ─────────────────
 _RATE_WINDOW = 60  # seconds
-_rate_buckets: dict = defaultdict(deque)
+_REFRESH_LIMIT = 5       # POST /api/refresh
+_TRANSLATE_LIMIT = 20    # POST /api/translate
+_refresh_buckets: dict = defaultdict(deque)
+_translate_buckets: dict = defaultdict(deque)
 _rate_lock = threading.Lock()
 
 
@@ -127,14 +131,14 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _rate_check(ip: str):
+def _rate_check(ip: str, bucket: dict, limit: int):
     """返回 (allowed, wait_seconds)。命中限速时不入队,直接给等待秒数。"""
     now = time.time()
     with _rate_lock:
-        q = _rate_buckets[ip]
+        q = bucket[ip]
         while q and q[0] < now - _RATE_WINDOW:
             q.popleft()
-        if len(q) >= _RATE_LIMIT:
+        if len(q) >= limit:
             wait = int(q[0] + _RATE_WINDOW - now) + 1
             return False, wait
         q.append(now)
@@ -165,7 +169,7 @@ def get_news():
 def refresh(request: Request):
     """触发后台刷新。立即返回。"""
     ip = _client_ip(request)
-    ok, wait = _rate_check(ip)
+    ok, wait = _rate_check(ip, _refresh_buckets, _REFRESH_LIMIT)
     if not ok:
         raise HTTPException(
             status_code=429,
@@ -203,6 +207,53 @@ def refresh(request: Request):
 def refresh_status():
     """前端轮询入口。返回当前 refresh_state 快照。"""
     return _snapshot_state()
+
+
+# ─── /api/translate ─────────────────────────────────────────────────────────
+TRANSLATE_LANGS = {"zh", "ja"}
+
+
+class TranslateRequest(BaseModel):
+    article_id: str   # 即 article URL
+    target_lang: str  # "zh" or "ja"
+
+
+@app.post("/api/translate")
+def translate_endpoint(body: TranslateRequest, request: Request):
+    """按需翻译某条文章的标题+摘要。命中 DB 缓存就不调 Gemini。"""
+    if body.target_lang not in TRANSLATE_LANGS:
+        raise HTTPException(status_code=400, detail="invalid target_lang")
+
+    ip = _client_ip(request)
+    ok, wait = _rate_check(ip, _translate_buckets, _TRANSLATE_LIMIT)
+    if not ok:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": f"Too many translation requests. Try again in {wait}s.",
+                "retry_after": wait,
+            },
+        )
+
+    article = get_article(body.article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="article not found")
+
+    # 命中缓存:不调 Gemini,直接吐
+    cached_t = article.get(f"title_{body.target_lang}")
+    cached_s = article.get(f"summary_{body.target_lang}")
+    if cached_t and cached_s:
+        return {"title_translated": cached_t, "summary_translated": cached_s, "cached": True}
+
+    result = translate_article(
+        article["title"], article.get("summary_en") or "", body.target_lang
+    )
+    if not result:
+        raise HTTPException(status_code=502, detail="translation failed")
+
+    title_t, summary_t = result
+    set_translation(body.article_id, body.target_lang, title_t, summary_t)
+    return {"title_translated": title_t, "summary_translated": summary_t, "cached": False}
 
 
 # 直跑入口
