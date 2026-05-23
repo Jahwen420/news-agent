@@ -2,14 +2,21 @@
 
 A daily news aggregation agent — built as I learn Python and agent workflows.
 
-## Day 1 (2026-05-22)
-- ✅ Project setup: uv, git, GitHub
-- ✅ First working script: `fetch_news.py` scrapes BBC News
-- ✅ Generates `output.html` with top 10 headlines
-- 🛠️ Stack: Python, requests, beautifulsoup4
+Aggregates BBC, NPR & The Guardian → runs each headline through Gemini for a
+one-sentence summary, topic and importance label → serves a filterable web UI.
 
 ## How to run
-\```bash
-uv run fetch_news.py
-open output.html
-\```
+
+```bash
+export GEMINI_API_KEY="your_key"
+uv run uvicorn main:app --reload
+```
+
+Then open http://localhost:8000. Click 🔄 to fetch (~2 minutes for 15 headlines).
+
+## Structure
+
+- `main.py` — FastAPI app, two endpoints: `GET /api/news`, `POST /api/refresh`
+- `fetcher.py` — scraping + Gemini analyze
+- `static/index.html` — vanilla-JS frontend
+- `cache.json` — latest fetched payload (gitignored)

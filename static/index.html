@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Today's Headlines</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --soft: #8e8e93;
+    --border: rgba(0, 0, 0, 0.06);
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-hover: 0 2px 4px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.08);
+    --chip-bg: transparent;
+    --chip-border: rgba(0, 0, 0, 0.12);
+    --chip-active: #1d1d1f;
+    --chip-active-text: #ffffff;
+    --must-color: #d32f2f;
+    --worth-color: #b27d00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f10;
+      --card: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #98989d;
+      --soft: #6e6e73;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.25);
+      --shadow-hover: 0 2px 4px rgba(0,0,0,0.35), 0 12px 32px rgba(0,0,0,0.4);
+      --chip-border: rgba(255, 255, 255, 0.18);
+      --chip-active: #f5f5f7;
+      --chip-active-text: #1d1d1f;
+      --must-color: #ff7a7a;
+      --worth-color: #e0b84a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                 Roboto, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 80px; }
+  @media (min-width: 768px) { .wrap { padding: 32px 24px 96px; } }
+
+  header { padding: 8px 0 12px; }
+  .title-row {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 24px; font-weight: 700;
+    letter-spacing: -0.02em; margin: 0;
+  }
+  @media (min-width: 768px) { header h1 { font-size: 32px; } }
+  header .meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  #refresh {
+    background: var(--card);
+    border: 1px solid var(--border);
+    width: 40px; height: 40px;
+    border-radius: 999px;
+    font-size: 16px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  #refresh:disabled { opacity: 0.55; cursor: wait; }
+  #refresh.spinning span { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  /* sticky 横向滚动筛选条 */
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    margin: 8px -16px 16px;
+    padding: 8px 0;
+  }
+  @media (min-width: 768px) { .filter-bar { margin: 12px 0 20px; padding: 0; } }
+  .chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  @media (min-width: 768px) {
+    .chips { flex-wrap: wrap; overflow-x: visible; padding: 0; }
+  }
+  .chip {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-border);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .chip:hover { border-color: var(--text); }
+  .chip.active {
+    background: var(--chip-active);
+    color: var(--chip-active-text);
+    border-color: var(--chip-active);
+  }
+
+  /* 文章卡片 */
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  article {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  @media (min-width: 768px) { article { padding: 18px 20px; } }
+  article:active { transform: scale(0.99); }
+  @media (hover: hover) {
+    article:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  }
+  article a { color: inherit; text-decoration: none; display: block; }
+  article a:hover .title { text-decoration: underline; text-decoration-thickness: 1px; }
+
+  .meta-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .title {
+    font-size: 16px; font-weight: 600;
+    margin-top: 8px; letter-spacing: -0.01em;
+    line-height: 1.4;
+  }
+  @media (min-width: 768px) { .title { font-size: 18px; } }
+  .summary-en {
+    font-size: 14px; color: var(--muted);
+    margin-top: 8px; line-height: 1.5;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge.bbc      { background: rgba(187, 25, 25, 0.12);  color: #bb1919; }
+  .badge.npr      { background: rgba(43, 108, 176, 0.12); color: #2b6cb0; }
+  .badge.guardian { background: rgba(5, 41, 98, 0.14);    color: #052962; }
+  @media (prefers-color-scheme: dark) {
+    .badge.bbc      { background: rgba(255, 90, 90, 0.18);  color: #ff8a8a; }
+    .badge.npr      { background: rgba(120, 180, 255, 0.18); color: #8ab8f0; }
+    .badge.guardian { background: rgba(140, 180, 255, 0.18); color: #a8c3f0; }
+  }
+  .importance, .topic-tag {
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+  }
+  .importance.must-read     { color: var(--must-color); }
+  .importance.worth-knowing { color: var(--worth-color); }
+  .topic-tag { color: var(--soft); }
+
+  .empty {
+    text-align: center; padding: 60px 16px;
+    color: var(--muted); font-size: 15px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg);
+    padding: 10px 18px; border-radius: 999px;
+    font-size: 14px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    max-width: calc(100vw - 32px);
+    box-shadow: var(--shadow-hover);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title-row">
+      <h1>Today's Headlines</h1>
+      <button id="refresh" aria-label="Refresh"><span>🔄</span></button>
+    </div>
+    <div class="meta" id="ts">Loading…</div>
+  </header>
+
+  <nav class="filter-bar" aria-label="Filters">
+    <div class="chips" id="chips">
+      <button class="chip active" data-filter="all">All</button>
+      <button class="chip" data-filter="imp:must_read">🔥 Must Read</button>
+      <button class="chip" data-filter="topic:Geopolitics">🌍 Geopolitics</button>
+      <button class="chip" data-filter="topic:Business">💰 Business</button>
+      <button class="chip" data-filter="topic:Tech">💻 Tech</button>
+      <button class="chip" data-filter="topic:China">🇨🇳 China</button>
+      <button class="chip" data-filter="topic:Japan">🇯🇵 Japan</button>
+      <button class="chip" data-filter="topic:Science">🔬 Science</button>
+      <button class="chip" data-filter="topic:Other">📰 Other</button>
+    </div>
+  </nav>
+
+  <main class="feed" id="list">
+    <div class="empty">Loading…</div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ─── 常量映射:topic / importance 的展示 ────────────────────────────────
+  const TOPIC_EMOJI = {
+    Geopolitics: "🌍", Business: "💰", Tech: "💻",
+    China: "🇨🇳", Japan: "🇯🇵", Science: "🔬", Other: "📰",
+  };
+  const IMP = {
+    must_read:     ["🔥", "Must read",     "must-read"],
+    worth_knowing: ["📌", "Worth knowing", "worth-knowing"],
+    if_time:       ["💡", "If time",       "if-time"],
+  };
+
+  const state = { articles: [], filter: "all", refreshing: false };
+
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
+    (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  function filterArticles() {
+    const f = state.filter;
+    if (f === "all") return state.articles;
+    if (f.startsWith("imp:"))   return state.articles.filter(a => a.importance === f.slice(4));
+    if (f.startsWith("topic:")) return state.articles.filter(a => a.topic === f.slice(6));
+    return state.articles;
+  }
+
+  function renderCard(a) {
+    const [iE, iL, iC] = IMP[a.importance] || ["", "", ""];
+    const tE = TOPIC_EMOJI[a.topic] || "";
+    return `
+      <article>
+        <div class="meta-row">
+          <span class="badge ${esc((a.source||"").toLowerCase())}">${esc(a.source)}</span>
+          <span class="importance ${iC}">${iE} ${esc(iL)}</span>
+          <span class="topic-tag">${tE} ${esc(a.topic)}</span>
+        </div>
+        <a href="${esc(a.url)}" target="_blank" rel="noopener">
+          <div class="title">${esc(a.title)}</div>
+        </a>
+        <div class="summary-en">${esc(a.summary_en)}</div>
+      </article>`;
+  }
+
+  function render() {
+    const items = filterArticles();
+    const list = $("#list");
+    if (!items.length) {
+      const msg = state.articles.length
+        ? "No articles match this filter."
+        : "No data yet — click 🔄 to fetch.";
+      list.innerHTML = `<div class="empty">${msg}</div>`;
+      return;
+    }
+    list.innerHTML = items.map(renderCard).join("");
+  }
+
+  function setFilter(f) {
+    state.filter = f;
+    document.querySelectorAll(".chip").forEach(c => {
+      c.classList.toggle("active", c.dataset.filter === f);
+    });
+    render();
+  }
+
+  function setTs(iso) {
+    $("#ts").textContent = iso
+      ? "Updated " + new Date(iso).toLocaleString()
+      : "No data yet";
+  }
+
+  async function loadNews() {
+    try {
+      const r = await fetch("/api/news");
+      const data = await r.json();
+      state.articles = data.articles || [];
+      setTs(data.updated_at);
+      render();
+    } catch (e) {
+      toast("Load failed: " + e.message);
+    }
+  }
+
+  async function doRefresh() {
+    if (state.refreshing) return;
+    state.refreshing = true;
+    const btn = $("#refresh");
+    btn.disabled = true;
+    btn.classList.add("spinning");
+    toast("Fetching… this takes ~2 minutes");
+    try {
+      const r = await fetch("/api/refresh", { method: "POST" });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ detail: r.statusText }));
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+      const data = await r.json();
+      state.articles = data.articles || [];
+      setTs(data.updated_at);
+      render();
+      toast(`Loaded ${state.articles.length} headlines`);
+    } catch (e) {
+      toast("Refresh failed: " + e.message);
+    } finally {
+      state.refreshing = false;
+      btn.disabled = false;
+      btn.classList.remove("spinning");
+    }
+  }
+
+  // ─── 事件绑定 + 启动 ────────────────────────────────────────────────────
+  document.querySelectorAll(".chip").forEach(c => {
+    c.addEventListener("click", () => setFilter(c.dataset.filter));
+  });
+  $("#refresh").addEventListener("click", doRefresh);
+  loadNews();
+</script>
+</body>
+</html>
