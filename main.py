@@ -2,8 +2,11 @@
 
 存储已经从 cache.json 迁到 SQLite (news.db),24h 滚动窗口。
 跑起来:
-    uv run uvicorn main:app --reload
+    本地  : uv run uvicorn main:app --reload
+    平台  : 平台会设置 $PORT,启动命令在 Procfile / railway.json 里
+    直跑  : python main.py(读 PORT 环境变量,默认 8000)
 """
+import os
 from datetime import datetime
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
@@ -94,3 +97,11 @@ def refresh():
         },
         "total_recent": len(recent),
     }
+
+
+# 直跑入口:python main.py。平台通常不走这里(Procfile 直接调 uvicorn),
+# 但留着方便本地无 reload 启动 / debugger 附加 / 容器里兜底。
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

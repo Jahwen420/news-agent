@@ -1,13 +1,14 @@
 [project]
 name = "news-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "News aggregator with multi-source scraping + Gemini summary/topic/importance"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
-    "beautifulsoup4>=4.14.3",
-    "fastapi>=0.136.1",
-    "google-genai>=2.6.0",
-    "requests>=2.34.2",
-    "uvicorn>=0.47.0",
+    # Upper bounds pin the next major to protect against breaking changes
+    "beautifulsoup4>=4.14.3,<5.0.0",
+    "fastapi>=0.136.1,<1.0.0",
+    "google-genai>=2.6.0,<3.0.0",
+    "requests>=2.34.2,<3.0.0",
+    "uvicorn>=0.47.0,<1.0.0",
 ]

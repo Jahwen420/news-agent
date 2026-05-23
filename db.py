@@ -3,12 +3,15 @@
 24h 滚动窗口:文章保留在 DB 里(不主动清理),
 get_recent_articles 在查询时过滤,只返回时间窗口内的。
 """
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "news.db"
+# 部署平台常会把持久卷挂到固定路径(如 Fly.io 的 /data),用 DATABASE_PATH 覆盖。
+# 本地不设环境变量则继续用项目根目录下的 news.db。
+DB_PATH = Path(os.environ.get("DATABASE_PATH") or (Path(__file__).parent / "news.db"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS articles (
@@ -45,7 +48,8 @@ def _conn():
 
 
 def init_db():
-    """启动时调一次,幂等。"""
+    """启动时调一次,幂等。会按需 mkdir 父目录(支持 /data/news.db 这种挂载路径)。"""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _conn() as c:
         c.executescript(SCHEMA)
 
