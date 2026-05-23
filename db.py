@@ -97,6 +97,13 @@ def save_articles(articles):
         )
 
 
+def get_last_refreshed_at():
+    """DB 里最新一条文章的 fetched_at。进程重启后用它恢复'上次刷新'显示。"""
+    with _conn() as c:
+        row = c.execute("SELECT MAX(fetched_at) AS last FROM articles").fetchone()
+        return row["last"] if row else None
+
+
 def get_recent_articles(hours=24):
     """文章窗口:我们在 hours 内抓到的,或 published_at 在窗口内的(后者补漏)。
 

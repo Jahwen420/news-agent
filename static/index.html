@@ -61,7 +61,11 @@
     letter-spacing: -0.02em; margin: 0;
   }
   @media (min-width: 768px) { header h1 { font-size: 32px; } }
-  header .meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  header .meta {
+    font-size: 13px; color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: -0.005em;
+  }
   /* 带文字的描边按钮:移动端也保留 "Refresh" label,不退化为图标 */
   #refresh {
     display: inline-flex; align-items: center;
@@ -286,7 +290,7 @@
         <span class="rr-label">Refresh</span>
       </button>
     </div>
-    <div class="meta" id="ts">Loading…</div>
+    <div class="meta" id="metaLine">Loading…</div>
   </header>
 
   <nav class="filter-bar" aria-label="Filters">
@@ -330,7 +334,10 @@
   const BIAS_TOOLTIP = "Political lean rating based on AllSides Media Bias Chart.";
 
   const PAGE_SIZE = 15;
-  const state = { articles: [], filter: "all", visible: PAGE_SIZE, refreshing: false };
+  const state = {
+    articles: [], filter: "all", visible: PAGE_SIZE,
+    refreshing: false, pollTimer: null, lastRefreshed: null,
+  };
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
@@ -447,10 +454,14 @@
     render();
   }
 
-  function setTs(iso) {
-    $("#ts").textContent = iso
-      ? "Updated " + new Date(iso).toLocaleString()
-      : "No data yet";
+  function setMetaLine({ count, lastRefreshed }) {
+    const el = $("#metaLine");
+    if (!lastRefreshed) {
+      el.textContent = "Last refreshed: never — click Refresh to load news";
+      return;
+    }
+    const rel = relativeTime(lastRefreshed) || "just now";
+    el.textContent = `Showing ${count} stor${count === 1 ? "y" : "ies"} from the past 24 hours · Last refreshed ${rel}`;
   }
 
   async function loadNews() {
@@ -458,49 +469,102 @@
       const r = await fetch("/api/news");
       const data = await r.json();
       state.articles = data.articles || [];
-      setTs(data.updated_at);
+      state.lastRefreshed = data.last_refreshed || null;
+      setMetaLine({ count: state.articles.length, lastRefreshed: state.lastRefreshed });
       render();
     } catch (e) {
       toast("Load failed: " + e.message);
     }
   }
 
-  async function doRefresh() {
-    if (state.refreshing) return;
-    state.refreshing = true;
+  // ─── Refresh:POST 立即返回,前端用 polling 轮询 status ─────────────────
+  function setRefreshButton(busy) {
     const btn = $("#refresh");
     const label = btn.querySelector(".rr-label");
-    btn.disabled = true;
-    btn.classList.add("spinning");
-    label.textContent = "Refreshing…";
+    btn.disabled = busy;
+    btn.classList.toggle("spinning", busy);
+    label.textContent = busy ? "Refreshing…" : "Refresh";
+  }
+
+  function stopPolling() {
+    if (state.pollTimer) {
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+  }
+
+  async function pollStatus() {
+    try {
+      const r = await fetch("/api/refresh/status");
+      if (!r.ok) return;
+      const s = await r.json();
+      if (s.status === "running") return;  // 继续轮询
+      stopPolling();
+      state.refreshing = false;
+      setRefreshButton(false);
+      if (s.status === "done") {
+        await loadNews();
+        // 提示:新增数 + 任何挂掉的源
+        const stats = s.stats || {};
+        const failed = s.sources_failed || [];
+        let msg;
+        if (failed.length) {
+          msg = `Refreshed with partial data: ${failed.join(", ")} failed`;
+        } else if (typeof stats.new === "number") {
+          msg = stats.new > 0
+            ? `Added ${stats.new} new article${stats.new === 1 ? "" : "s"}`
+            : "No new articles since last refresh";
+        } else {
+          msg = "Refreshed";
+        }
+        toast(msg);
+      } else if (s.status === "error") {
+        toast("Refresh failed: " + (s.error || "unknown error"));
+      }
+    } catch (e) {
+      // 网络抖动,下一轮再试,不停止轮询
+    }
+  }
+
+  async function doRefresh() {
+    if (state.refreshing) return;
+    setRefreshButton(true);
     try {
       const r = await fetch("/api/refresh", { method: "POST" });
+      if (r.status === 429) {
+        const err = await r.json().catch(() => ({}));
+        const detail = err.detail || {};
+        toast(detail.error || "Rate limited. Slow down.");
+        setRefreshButton(false);
+        return;
+      }
+      if (r.status === 409) {
+        // 已经在跑(可能别处触发了),直接接管轮询
+        state.refreshing = true;
+        state.pollTimer = setInterval(pollStatus, 3000);
+        return;
+      }
       if (!r.ok) {
         const err = await r.json().catch(() => ({ detail: r.statusText }));
         throw new Error(err.detail || `HTTP ${r.status}`);
       }
-      const data = await r.json();
-      state.articles = data.articles || [];
-      setTs(data.updated_at);
-      render();
-      // 后端返回 stats 时,显示这次到底新增了多少;auto-hide 3s by toast()
-      const s = data.stats;
-      if (s && typeof s.new === "number") {
-        toast(s.new > 0
-          ? `Added ${s.new} new article${s.new === 1 ? "" : "s"}`
-          : "No new articles since last refresh");
-      } else {
-        toast(`Loaded ${state.articles.length} headlines`);
-      }
+      state.refreshing = true;
+      state.pollTimer = setInterval(pollStatus, 3000);
     } catch (e) {
       toast("Refresh failed: " + e.message);
-    } finally {
-      state.refreshing = false;
-      btn.disabled = false;
-      btn.classList.remove("spinning");
-      label.textContent = "Refresh";
+      setRefreshButton(false);
     }
   }
+
+  // 离开页面时停掉轮询,免得后台空跑;回来时如果还在 refreshing 就恢复
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopPolling();
+    } else if (state.refreshing && !state.pollTimer) {
+      pollStatus();  // 立即查一次
+      state.pollTimer = setInterval(pollStatus, 3000);
+    }
+  });
 
   // ─── 事件绑定 + 启动 ────────────────────────────────────────────────────
   document.querySelectorAll(".chip").forEach(c => {
