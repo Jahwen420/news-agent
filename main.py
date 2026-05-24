@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from fetcher import fetch_all, analyze_batch, fetch_og_images, translate_article
+from fetcher import fetch_all, analyze_batch, fetch_og_images, translate_article, generate_brief
 from db import (
     init_db, existing_urls, save_articles,
     get_recent_articles, get_last_refreshed_at,
@@ -35,6 +35,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+# ─── Brief cache ────────────────────────────────────────────────────────────
+# In-memory; survives the refresh cycle but is lost on process restart.
+# On startup we fire a background generation from existing DB articles.
+_brief_lock = threading.Lock()
+_brief_cache: dict = {"items": [], "generated_at": None}
+
+
+def _get_brief_candidates():
+    """Up to 10 must_read articles; pad to 6 with worth_knowing if needed."""
+    all_articles = get_recent_articles(hours=24)
+    must_reads = [a for a in all_articles if a.get("importance") == "must_read"][:10]
+    candidates = list(must_reads)
+    if len(candidates) < 6:
+        worth = [a for a in all_articles if a.get("importance") == "worth_knowing"]
+        candidates.extend(worth[: 6 - len(candidates)])
+    return candidates
+
+
+def _run_generate_brief():
+    """Generate brief from current DB articles and update the in-memory cache."""
+    try:
+        candidates = _get_brief_candidates()
+        if not candidates:
+            print("[brief] no articles available yet", flush=True)
+            return
+        print(f"[brief] generating from {len(candidates)} articles…", flush=True)
+        items = generate_brief(candidates)
+        if items:
+            with _brief_lock:
+                _brief_cache["items"] = items
+                _brief_cache["generated_at"] = datetime.now().isoformat(timespec="seconds")
+            print(f"[brief] cached {len(items)} items", flush=True)
+        else:
+            print("[brief] generation returned no items", flush=True)
+    except Exception as e:
+        print(f"[brief] error: {e}", flush=True)
 
 
 # ─── Refresh 状态机 ─────────────────────────────────────────────────────────
@@ -95,6 +133,9 @@ def _run_refresh():
 
             save_articles(new_articles)
 
+        # Regenerate brief synchronously so it's ready when frontend polls "done"
+        _run_generate_brief()
+
         _set_state(
             status="done",
             finished_at=datetime.now().isoformat(timespec="seconds"),
@@ -143,6 +184,13 @@ def _rate_check(ip: str, bucket: dict, limit: int):
             return False, wait
         q.append(now)
         return True, 0
+
+
+# ─── Startup ────────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def _startup():
+    """Populate brief cache from existing DB articles (non-blocking background thread)."""
+    threading.Thread(target=_run_generate_brief, daemon=True).start()
 
 
 # ─── Routes ─────────────────────────────────────────────────────────────────
@@ -207,6 +255,14 @@ def refresh(request: Request):
 def refresh_status():
     """前端轮询入口。返回当前 refresh_state 快照。"""
     return _snapshot_state()
+
+
+# ─── /api/brief ─────────────────────────────────────────────────────────────
+@app.get("/api/brief")
+def get_brief():
+    """Return the cached daily brief (3 items).  Empty list until first generation."""
+    with _brief_lock:
+        return dict(_brief_cache)
 
 
 # ─── /api/translate ─────────────────────────────────────────────────────────

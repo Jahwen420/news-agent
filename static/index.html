@@ -53,51 +53,49 @@
   .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 80px; }
   @media (min-width: 768px) { .wrap { padding: 0 24px 96px; } }
 
-  /* ─── Hero ────────────────────────────────────────────────────────── */
-  .hero {
-    padding: 48px 0 32px;
-  }
-  @media (min-width: 768px) {
-    .hero { padding: 96px 0 48px; }
-  }
+  /* ─── Hero — mobile-first ────────────────────────────────────────── */
+  .hero { padding: 32px 0 16px; }
+  @media (min-width: 600px)  { .hero { padding: 48px 0 32px; } }
+  @media (min-width: 768px)  { .hero { padding: 96px 0 48px; } }
+
   .hero-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 36px;
+    margin-bottom: 20px;
   }
+  @media (min-width: 600px) { .hero-nav { margin-bottom: 36px; } }
+
   .brand {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 15px; font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
   }
+
   .hero-headline {
     font-family: ui-serif, Georgia, "Times New Roman", serif;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1.15;
     max-width: 640px;
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     color: var(--text);
   }
-  @media (min-width: 768px) {
-    .hero-headline { font-size: 48px; }
-  }
-  .hero-sub {
-    font-size: 18px;
-    color: var(--muted);
-    max-width: 500px;
-    margin: 0;
-    line-height: 1.55;
-  }
-  .hero-meta {
-    font-size: 13px;
-    color: var(--muted);
-    margin: 14px 0 0;
-    padding: 0;
-    letter-spacing: -0.005em;
+  @media (min-width: 600px) { .hero-headline { font-size: 32px; margin-bottom: 16px; } }
+  @media (min-width: 768px) { .hero-headline { font-size: 48px; } }
+
+  /* Hide subhead on narrow mobile to save vertical space */
+  .hero-sub { display: none; }
+  @media (min-width: 600px) {
+    .hero-sub {
+      display: block;
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0;
+      line-height: 1.55;
+    }
   }
 
   /* ─── Actions: lang switcher + refresh ───────────────────────────── */
@@ -111,14 +109,12 @@
     box-shadow: var(--shadow);
   }
   .lang-switcher button {
-    background: transparent;
-    border: none;
+    background: transparent; border: none;
     color: var(--muted);
     font-family: inherit;
     font-size: 12px; font-weight: 600;
     padding: 6px 10px;
-    cursor: pointer;
-    line-height: 1;
+    cursor: pointer; line-height: 1;
     transition: background 0.15s ease, color 0.15s ease;
   }
   .lang-switcher button:hover { color: var(--text); }
@@ -131,8 +127,7 @@
   }
 
   #refresh {
-    display: inline-flex; align-items: center;
-    gap: 6px;
+    display: inline-flex; align-items: center; gap: 6px;
     background: var(--card);
     border: 1px solid var(--border);
     color: var(--text);
@@ -152,19 +147,111 @@
   #refresh.spinning .rr-icon { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
+  /* ─── Today's Brief ──────────────────────────────────────────────── */
+  .brief-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  @media (min-width: 768px) { .brief-section { padding: 20px; margin-bottom: 16px; } }
+
+  .brief-header {
+    display: flex; align-items: baseline; gap: 6px;
+    margin-bottom: 14px;
+  }
+  .brief-title-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .brief-date-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .brief-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    text-decoration: none; color: inherit;
+  }
+  .brief-item:first-of-type { border-top: none; padding-top: 0; }
+  .brief-item:last-of-type  { padding-bottom: 0; }
+  @media (min-width: 768px) { .brief-item { padding: 14px 0; } }
+
+  .brief-emoji {
+    font-size: 22px; line-height: 1.2;
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 26px; text-align: center;
+  }
+  @media (min-width: 768px) { .brief-emoji { font-size: 24px; width: 28px; } }
+
+  .brief-content { flex: 1; min-width: 0; }
+  .brief-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .brief-framing {
+    font-size: 16px; font-weight: 400;
+    line-height: 1.4; color: var(--text);
+    transition: color 0.15s ease;
+  }
+  @media (min-width: 768px) { .brief-framing { font-size: 17px; } }
+  @media (hover: hover) { .brief-item:hover .brief-framing { color: var(--accent); } }
+
+  .brief-empty {
+    font-size: 14px; color: var(--muted);
+    text-align: center;
+    padding: 4px 0 2px;
+  }
+
+  /* Skeleton pulse */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .brief-skel-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+  }
+  .brief-skel-item:first-child { border-top: none; padding-top: 0; }
+  .brief-skel-item:last-child  { padding-bottom: 0; }
+  .brief-skel-emoji {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--border); flex-shrink: 0;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .brief-skel-body { flex: 1; }
+  .brief-skel-line {
+    height: 10px; border-radius: 4px;
+    background: var(--border);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .brief-skel-lbl   { width: 38%; height: 10px; margin-bottom: 10px; }
+  .brief-skel-txt1  { width: 92%; height: 14px; margin-bottom: 6px; }
+  .brief-skel-txt2  { width: 62%; height: 14px; }
+
   /* ─── Sticky filter bar ───────────────────────────────────────────── */
   .filter-bar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    position: sticky; top: 0; z-index: 10;
     background: var(--bg);
-    margin: 0 -16px 16px;
+    margin: 0 -16px 0;
     padding: 8px 0;
   }
-  @media (min-width: 768px) { .filter-bar { margin: 0 0 20px; padding: 0; } }
+  @media (min-width: 768px) { .filter-bar { margin: 0; padding: 0; } }
   .chips {
-    display: flex;
-    gap: 8px;
+    display: flex; gap: 8px;
     overflow-x: auto;
     padding: 2px 16px;
     -webkit-overflow-scrolling: touch;
@@ -176,15 +263,12 @@
   }
   .chip {
     flex-shrink: 0;
-    padding: 7px 14px;
-    border-radius: 999px;
+    padding: 7px 14px; border-radius: 999px;
     background: var(--chip-bg);
     border: 1px solid var(--chip-border);
     color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    cursor: pointer;
+    font-size: 14px; font-weight: 500;
+    white-space: nowrap; cursor: pointer;
     font-family: inherit;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
@@ -193,6 +277,15 @@
     background: var(--accent);
     color: #ffffff;
     border-color: var(--accent);
+  }
+
+  /* Meta line below filter chips */
+  .feed-meta {
+    font-size: 13px; color: var(--muted);
+    letter-spacing: -0.005em;
+    margin: 8px 0 10px;
+    padding: 0 2px;
+    min-height: 1em;
   }
 
   /* ─── Cards ───────────────────────────────────────────────────────── */
@@ -205,13 +298,10 @@
     padding: 16px;
     box-shadow: var(--shadow);
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-left-color 0.18s ease;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
+    display: flex; gap: 12px; align-items: flex-start;
   }
   @media (min-width: 768px) { article { padding: 20px; gap: 14px; } }
   article:active { transform: scale(0.99); }
-
   @media (hover: hover) {
     article:hover {
       transform: translateY(-2px);
@@ -219,8 +309,6 @@
       border-left-color: var(--accent);
     }
   }
-
-  /* must_read: muted red left accent; on hover transitions to --accent */
   article.must-read-border { border-left-color: var(--must-color); }
   @media (hover: hover) {
     article.must-read-border:hover { border-left-color: var(--accent); }
@@ -229,25 +317,20 @@
   .card-body { flex: 1; min-width: 0; }
   article a { color: inherit; text-decoration: none; display: block; }
 
-  /* ─── Card top row ────────────────────────────────────────────────── */
   .card-top {
     display: flex; justify-content: space-between; align-items: center;
-    gap: 12px;
-    line-height: 1.4;
+    gap: 12px; line-height: 1.4;
   }
-  /* Source badge: small, uppercase, spaced */
   .src-line {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--muted);
     display: inline-flex; align-items: center; gap: 2px;
     min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .time-ago { font-size: 11px; font-weight: 500; color: var(--soft); flex-shrink: 0; }
 
-  /* ─── Title with left-to-right underline animation ────────────────── */
+  /* Title: left-to-right underline on hover */
   .title {
     font-size: 16px; font-weight: 600;
     margin-top: 6px; letter-spacing: -0.01em;
@@ -266,7 +349,6 @@
     margin-top: 8px; line-height: 1.5;
   }
 
-  /* ─── Card bottom ─────────────────────────────────────────────────── */
   .card-bottom {
     margin-top: 10px;
     display: flex; align-items: center; justify-content: space-between;
@@ -277,7 +359,6 @@
   .importance.worth-knowing { color: var(--worth-color); }
   .importance-spacer { flex: 1; }
 
-  /* ─── Translate button + menu ─────────────────────────────────────── */
   .translate-wrap { position: relative; }
   .translate-btn {
     background: transparent; border: none;
@@ -292,89 +373,65 @@
 
   .translate-menu {
     position: absolute;
-    bottom: calc(100% + 6px);
-    right: 0;
+    bottom: calc(100% + 6px); right: 0;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: var(--shadow-hover);
     padding: 4px;
     z-index: 50;
-    display: flex; flex-direction: column;
-    gap: 2px;
+    display: flex; flex-direction: column; gap: 2px;
     min-width: 110px;
   }
   .translate-menu button {
     background: transparent; border: none;
-    text-align: left;
-    padding: 6px 10px;
-    font-size: 13px;
-    cursor: pointer;
-    border-radius: 6px;
-    font-family: inherit;
-    color: var(--text);
-    white-space: nowrap;
+    text-align: left; padding: 6px 10px;
+    font-size: 13px; cursor: pointer;
+    border-radius: 6px; font-family: inherit;
+    color: var(--text); white-space: nowrap;
   }
   .translate-menu button:hover { background: var(--bg); }
 
-  /* ─── Thumbnail ───────────────────────────────────────────────────── */
-  /* Mobile: 72×72, gap already set on article (12px) */
+  /* Thumbnail */
   .thumb {
     width: 72px; height: 72px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0;
-    background: var(--border);
+    border-radius: 10px; object-fit: cover;
+    flex-shrink: 0; background: var(--border);
   }
-  @media (min-width: 768px) {
-    .thumb { width: 120px; height: 120px; }
-  }
+  @media (min-width: 768px) { .thumb { width: 120px; height: 120px; } }
 
-  /* ─── Load more ───────────────────────────────────────────────────── */
+  /* Load more */
   .load-more-wrap { margin-top: 28px; display: flex; justify-content: center; }
   .load-more {
-    display: block;
-    width: 100%;
-    background: var(--accent);
-    color: #ffffff;
+    display: block; width: 100%;
+    background: var(--accent); color: #ffffff;
     border: none;
-    padding: 14px 24px;
-    border-radius: 12px;
-    font-size: 15px; font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    letter-spacing: 0.01em;
+    padding: 14px 24px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; letter-spacing: 0.01em;
     box-shadow: var(--shadow);
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   }
   .load-more:hover  { transform: translateY(-1px); box-shadow: var(--shadow-hover); opacity: 0.92; }
   .load-more:active { transform: scale(0.99); }
-  @media (min-width: 768px) {
-    .load-more { width: auto; min-width: 240px; }
-  }
+  @media (min-width: 768px) { .load-more { width: auto; min-width: 240px; } }
 
-  /* ─── Bias info "i" button ────────────────────────────────────────── */
+  /* Bias info "i" */
   .bias-info {
     all: unset;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 11px; height: 11px;
-    margin-left: 3px;
-    border-radius: 999px;
-    border: 1px solid currentColor;
+    width: 11px; height: 11px; margin-left: 3px;
+    border-radius: 999px; border: 1px solid currentColor;
     color: var(--soft);
     font-size: 8px; font-weight: 700;
-    cursor: help;
-    position: relative;
-    line-height: 1;
-    opacity: 0.7;
+    cursor: help; position: relative; line-height: 1; opacity: 0.7;
   }
   .bias-info:hover, .bias-info:focus { opacity: 1; }
   .bias-info > span { font-style: italic; }
   .bias-info::after {
     content: attr(data-tooltip);
     position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%; transform: translateX(-50%);
+    bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
     background: var(--text); color: var(--bg);
     padding: 7px 10px; border-radius: 8px;
     font-size: 11px; font-weight: 500;
@@ -382,14 +439,13 @@
     white-space: nowrap; max-width: 80vw;
     opacity: 0; pointer-events: none;
     transition: opacity 0.15s ease;
-    z-index: 100;
-    box-shadow: var(--shadow);
+    z-index: 100; box-shadow: var(--shadow);
   }
   .bias-info:hover::after,
   .bias-info:focus::after,
   .bias-info:focus-visible::after { opacity: 1; }
 
-  /* ─── Empty + Toast ───────────────────────────────────────────────── */
+  /* Empty + Toast */
   .empty {
     text-align: center; padding: 60px 16px;
     color: var(--muted); font-size: 15px;
@@ -411,7 +467,7 @@
 <body>
 <div class="wrap">
 
-  <!-- ── Hero ── -->
+  <!-- ── Hero (compressed on mobile) ── -->
   <section class="hero">
     <div class="hero-nav">
       <span class="brand">Loop.</span>
@@ -429,13 +485,20 @@
     </div>
     <h1 class="hero-headline">Don't be the last one to know.</h1>
     <p class="hero-sub">AI-curated brief of what's worth knowing today — for people who want to stay sharp in conversation.</p>
-    <p class="hero-meta" id="metaLine"></p>
   </section>
 
+  <!-- ── Today's Brief ── -->
+  <section id="briefSection" class="brief-section" aria-label="Today's Brief"></section>
+
+  <!-- ── Filter bar (sticky) ── -->
   <nav class="filter-bar" aria-label="Filters">
     <div class="chips" id="chips"></div>
   </nav>
 
+  <!-- ── Meta line (story count + last updated) ── -->
+  <div id="metaLine" class="feed-meta"></div>
+
+  <!-- ── Article feed ── -->
   <main class="feed" id="list">
     <div class="empty" id="initialEmpty"></div>
   </main>
@@ -445,7 +508,7 @@
 
 <script src="/static/i18n.js"></script>
 <script>
-  // ─── 表 + 静态映射 ──────────────────────────────────────────────────────
+  // ─── Static maps ────────────────────────────────────────────────────
   const IMP = {
     must_read:     ["🔥", "importanceMustRead",     "must-read"],
     worth_knowing: ["📌", "importanceWorthKnowing", "worth-knowing"],
@@ -458,33 +521,32 @@
     "Nikkei Asia": "Center", "SCMP": "Center",
   };
   const BIAS_I18N = {
-    "Left":       "biasLeft",
-    "Lean Left":  "biasLeanLeft",
-    "Center":     "biasCenter",
-    "Lean Right": "biasLeanRight",
-    "Right":      "biasRight",
+    "Left": "biasLeft", "Lean Left": "biasLeanLeft", "Center": "biasCenter",
+    "Lean Right": "biasLeanRight", "Right": "biasRight",
   };
 
   const CHIPS = [
-    { filter: "all",                emoji: "",   key: "filterAll" },
-    { filter: "topic:Geopolitics",  emoji: "🌍", key: "topicGeopolitics" },
-    { filter: "topic:Business",     emoji: "💰", key: "topicBusiness" },
-    { filter: "topic:Tech",         emoji: "💻", key: "topicTech" },
-    { filter: "topic:China",        emoji: "🇨🇳", key: "topicChina" },
-    { filter: "topic:Japan",        emoji: "🇯🇵", key: "topicJapan" },
-    { filter: "topic:Science",      emoji: "🔬", key: "topicScience" },
-    { filter: "topic:Other",        emoji: "📰", key: "topicOther" },
+    { filter: "all",               emoji: "",   key: "filterAll" },
+    { filter: "topic:Geopolitics", emoji: "🌍", key: "topicGeopolitics" },
+    { filter: "topic:Business",    emoji: "💰", key: "topicBusiness" },
+    { filter: "topic:Tech",        emoji: "💻", key: "topicTech" },
+    { filter: "topic:China",       emoji: "🇨🇳", key: "topicChina" },
+    { filter: "topic:Japan",       emoji: "🇯🇵", key: "topicJapan" },
+    { filter: "topic:Science",     emoji: "🔬", key: "topicScience" },
+    { filter: "topic:Other",       emoji: "📰", key: "topicOther" },
   ];
 
   const PAGE_SIZE = 15;
   const state = {
     articles: [], filter: "all", visible: PAGE_SIZE,
     refreshing: false, pollTimer: null, lastRefreshed: null,
+    brief: null,        // null = loading, [] = empty, [{…}…] = items
+    briefFailed: false, // true if /api/brief fetch threw
   };
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
-    (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
   const TRANSLATED_KEY = "translated_articles";
   function getTranslatedStates() {
@@ -513,9 +575,9 @@
     const min = Math.floor(diff / 60000);
     if (min < 60) return t("timeAgo", min, "m");
     const hr = Math.floor(min / 60);
-    if (hr < 24)  return t("timeAgo", hr, "h");
+    if (hr < 24) return t("timeAgo", hr, "h");
     const day = Math.floor(hr / 24);
-    if (day < 7)  return t("timeAgo", day, "d");
+    if (day < 7) return t("timeAgo", day, "d");
     return new Date(iso).toLocaleDateString();
   }
 
@@ -525,13 +587,86 @@
     if (f.startsWith("imp:"))        arr = arr.filter(a => a.importance === f.slice(4));
     else if (f.startsWith("topic:")) arr = arr.filter(a => a.topic === f.slice(6));
     return [...arr].sort((a, b) => {
-      const ra = IMP_RANK[a.importance] ?? 3;
-      const rb = IMP_RANK[b.importance] ?? 3;
+      const ra = IMP_RANK[a.importance] ?? 3, rb = IMP_RANK[b.importance] ?? 3;
       if (ra !== rb) return ra - rb;
       const ta = a.published_at ? new Date(a.published_at).getTime() : 0;
       const tb = b.published_at ? new Date(b.published_at).getTime() : 0;
       return tb - ta;
     });
+  }
+
+  // ─── Today's Brief ──────────────────────────────────────────────────
+  function _briefHeader() {
+    return `
+      <div class="brief-header">
+        <span class="brief-title-label">${esc(t("briefTitle"))}</span>
+        <span class="brief-date-label">${esc(t("briefDate"))}</span>
+      </div>`;
+  }
+
+  function _briefSkeletons() {
+    const item = `
+      <div class="brief-skel-item">
+        <div class="brief-skel-emoji"></div>
+        <div class="brief-skel-body">
+          <div class="brief-skel-line brief-skel-lbl"></div>
+          <div class="brief-skel-line brief-skel-txt1"></div>
+          <div class="brief-skel-line brief-skel-txt2"></div>
+        </div>
+      </div>`;
+    return item + item + item;
+  }
+
+  function _briefItems(items) {
+    return items.map(item => `
+      <a class="brief-item" href="${esc(item.source_url || "#")}"
+         target="_blank" rel="noopener noreferrer">
+        <span class="brief-emoji" aria-hidden="true">${esc(item.emoji)}</span>
+        <div class="brief-content">
+          <div class="brief-label">${esc(item.label)}</div>
+          <div class="brief-framing">${esc(item.framing)}</div>
+        </div>
+      </a>`).join("");
+  }
+
+  function renderBriefSection() {
+    const section = $("#briefSection");
+    if (!section) return;
+
+    if (state.briefFailed) {
+      section.style.display = "none";
+      return;
+    }
+    section.style.display = "";
+
+    if (state.brief === null) {
+      // Loading — show skeletons
+      section.innerHTML = _briefHeader() + _briefSkeletons();
+      return;
+    }
+    if (state.brief.length === 0) {
+      // Empty — no data yet
+      section.innerHTML = _briefHeader() +
+        `<div class="brief-empty">${esc(t("briefEmpty"))}</div>`;
+      return;
+    }
+    section.innerHTML = _briefHeader() + _briefItems(state.brief);
+  }
+
+  async function loadBrief() {
+    state.brief = null;
+    state.briefFailed = false;
+    renderBriefSection();
+    try {
+      const r = await fetch("/api/brief");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      state.brief = data.items || [];
+      renderBriefSection();
+    } catch (e) {
+      state.briefFailed = true;
+      renderBriefSection();
+    }
   }
 
   // ─── Card renderer ──────────────────────────────────────────────────
@@ -560,7 +695,6 @@
       ? `<img class="thumb" src="${esc(a.og_image)}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
       : "";
 
-    // Add must-read-border class so left accent is visible
     const borderClass = a.importance === "must_read" ? ' class="must-read-border"' : '';
 
     return `
@@ -605,11 +739,7 @@
         e.stopPropagation();
         const card = btn.closest("article");
         const url = card.dataset.url;
-        if (btn.classList.contains("show-original")) {
-          revertTranslation(url);
-        } else {
-          onTranslateClick(btn, url);
-        }
+        btn.classList.contains("show-original") ? revertTranslation(url) : onTranslateClick(btn, url);
       });
     });
 
@@ -617,38 +747,30 @@
     if (lm) lm.addEventListener("click", loadMore);
   }
 
-  function loadMore() {
-    state.visible += PAGE_SIZE;
-    render();
-  }
+  function loadMore() { state.visible += PAGE_SIZE; render(); }
 
   // ─── Filter chips ───────────────────────────────────────────────────
   function renderChips() {
-    const html = CHIPS.map(c => {
+    $("#chips").innerHTML = CHIPS.map(c => {
       const label = (c.emoji ? c.emoji + " " : "") + t(c.key);
       const active = c.filter === state.filter ? " active" : "";
       return `<button class="chip${active}" data-filter="${esc(c.filter)}">${esc(label)}</button>`;
     }).join("");
-    $("#chips").innerHTML = html;
     document.querySelectorAll(".chip").forEach(c => {
       c.addEventListener("click", () => setFilter(c.dataset.filter));
     });
   }
 
   function setFilter(f) {
-    state.filter = f;
-    state.visible = PAGE_SIZE;
-    renderChips();
-    render();
+    state.filter = f; state.visible = PAGE_SIZE;
+    renderChips(); render();
   }
 
-  // ─── Hero meta line ─────────────────────────────────────────────────
+  // ─── Meta line ──────────────────────────────────────────────────────
   function setMetaLine({ count, lastRefreshed }) {
     const el = $("#metaLine");
-    if (!lastRefreshed) {
-      el.textContent = t("headerNever");
-      return;
-    }
+    if (!el) return;
+    if (!lastRefreshed) { el.textContent = t("headerNever"); return; }
     const rel = relativeTime(lastRefreshed) || t("justNow");
     el.textContent = t("headerStats", count, rel);
   }
@@ -690,17 +812,14 @@
       state.refreshing = false;
       setRefreshButton(false);
       if (s.status === "done") {
-        await loadNews();
+        // Load news + brief together — brief is ready server-side when status is "done"
+        await Promise.all([loadNews(), loadBrief()]);
         const stats = s.stats || {};
         const failed = s.sources_failed || [];
         let msg;
-        if (failed.length) {
-          msg = t("toastPartialFail", failed.join(", "));
-        } else if (typeof stats.new === "number") {
-          msg = stats.new > 0 ? t("toastAddedNew", stats.new) : t("toastNoNew");
-        } else {
-          msg = t("toastRefreshed");
-        }
+        if (failed.length)                       msg = t("toastPartialFail", failed.join(", "));
+        else if (typeof stats.new === "number")  msg = stats.new > 0 ? t("toastAddedNew", stats.new) : t("toastNoNew");
+        else                                     msg = t("toastRefreshed");
         toast(msg);
       } else if (s.status === "error") {
         toast(t("toastRefreshFailed", s.error || "unknown error"));
@@ -747,31 +866,22 @@
   // ─── Translation flow ────────────────────────────────────────────────
   function onTranslateClick(btn, url) {
     const lang = window.getUiLang();
-    if (lang === "zh" || lang === "ja") {
-      translateArticle(url, lang);
-      return;
-    }
+    if (lang === "zh" || lang === "ja") { translateArticle(url, lang); return; }
     document.querySelectorAll(".translate-menu").forEach(el => el.remove());
     const menu = document.createElement("div");
     menu.className = "translate-menu";
     menu.innerHTML = `
       <button type="button" data-lang="zh">${esc(t("pickChinese"))}</button>
-      <button type="button" data-lang="ja">${esc(t("pickJapanese"))}</button>
-    `;
+      <button type="button" data-lang="ja">${esc(t("pickJapanese"))}</button>`;
     btn.closest(".translate-wrap").appendChild(menu);
     menu.querySelectorAll("button").forEach(b => {
       b.addEventListener("click", (e) => {
-        e.stopPropagation();
-        menu.remove();
-        translateArticle(url, b.dataset.lang);
+        e.stopPropagation(); menu.remove(); translateArticle(url, b.dataset.lang);
       });
     });
     setTimeout(() => {
       document.addEventListener("click", function close(ev) {
-        if (!menu.contains(ev.target)) {
-          menu.remove();
-          document.removeEventListener("click", close);
-        }
+        if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener("click", close); }
       });
     }, 0);
   }
@@ -782,10 +892,8 @@
     const btn = card.querySelector(".translate-btn");
     const titleEl = card.querySelector(".title");
     const summaryEl = card.querySelector(".summary-en");
-    const origTitle = titleEl.textContent;
-    const origSummary = summaryEl.textContent;
-    btn.disabled = true;
-    btn.textContent = t("translating");
+    const origTitle = titleEl.textContent, origSummary = summaryEl.textContent;
+    btn.disabled = true; btn.textContent = t("translating");
     try {
       const r = await fetch("/api/translate", {
         method: "POST",
@@ -802,25 +910,16 @@
         throw new Error(err.detail || `HTTP ${r.status}`);
       }
       const data = await r.json();
-      titleEl.textContent   = data.title_translated;
+      titleEl.textContent = data.title_translated;
       summaryEl.textContent = data.summary_translated;
       const states = getTranslatedStates();
-      states[url] = {
-        lang,
-        title: data.title_translated,
-        summary: data.summary_translated,
-        orig_title: origTitle,
-        orig_summary: origSummary,
-      };
+      states[url] = { lang, title: data.title_translated, summary: data.summary_translated,
+                      orig_title: origTitle, orig_summary: origSummary };
       setTranslatedStates(states);
-      btn.classList.add("show-original");
-      btn.textContent = t("showOriginal");
+      btn.classList.add("show-original"); btn.textContent = t("showOriginal");
     } catch (e) {
-      toast(t("toastTranslateFailed", e.message));
-      btn.textContent = t("translate");
-    } finally {
-      btn.disabled = false;
-    }
+      toast(t("toastTranslateFailed", e.message)); btn.textContent = t("translate");
+    } finally { btn.disabled = false; }
   }
 
   function revertTranslation(url) {
@@ -832,11 +931,9 @@
       card.querySelector(".title").textContent = cached.orig_title;
       card.querySelector(".summary-en").textContent = cached.orig_summary;
       const btn = card.querySelector(".translate-btn");
-      btn.classList.remove("show-original");
-      btn.textContent = t("translate");
+      btn.classList.remove("show-original"); btn.textContent = t("translate");
     }
-    delete states[url];
-    setTranslatedStates(states);
+    delete states[url]; setTranslatedStates(states);
   }
 
   // ─── i18n apply ──────────────────────────────────────────────────────
@@ -847,23 +944,22 @@
     document.querySelectorAll("#langSwitcher button").forEach(b => {
       b.classList.toggle("active", b.dataset.lang === window.getUiLang());
     });
+    renderBriefSection();  // re-render header label + date in new language
     renderChips();
     setMetaLine({ count: state.articles.length, lastRefreshed: state.lastRefreshed });
     render();
   }
 
-  function changeLang(lang) {
-    window.setUiLang(lang);
-    applyI18n();
-  }
+  function changeLang(lang) { window.setUiLang(lang); applyI18n(); }
 
   // ─── Boot ────────────────────────────────────────────────────────────
   $("#refresh").addEventListener("click", doRefresh);
   document.querySelectorAll("#langSwitcher button").forEach(b => {
     b.addEventListener("click", () => changeLang(b.dataset.lang));
   });
-  applyI18n();
-  loadNews();
+  applyI18n();   // sets up language, chips, empty feed state
+  loadNews();    // fetch articles
+  loadBrief();   // fetch brief (shows skeletons while loading)
 </script>
 </body>
 </html>

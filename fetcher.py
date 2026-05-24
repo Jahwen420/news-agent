@@ -275,6 +275,69 @@ def translate_article(title, summary, target_lang):
         return None
 
 
+BRIEF_PROMPT = """\
+You are a sharp editorial voice writing a daily brief for ambitious professionals. \
+From these news items, select the 3 most consequential developments today.
+
+For each, write:
+- emoji: one relevant emoji
+- label: 3-5 word topic label (e.g. 'China-US Tech War')
+- framing: ONE sentence (max 22 words) that captures WHY this matters right now. \
+Be specific and opinionated. Avoid: 'experts say', 'this is significant', 'this highlights'. \
+Instead say what the consequence actually is.
+
+Return ONLY valid JSON — a list of exactly 3 objects:
+[{{"emoji": "...", "label": "...", "framing": "...", \
+"source_url": "<url of the most relevant article>"}}]
+
+News items:
+{items}"""
+
+
+def generate_brief(articles):
+    """Call Gemini to produce a 3-item opinionated daily brief.
+
+    articles: list of dicts with at least {source, title, summary_en, url}.
+    Returns list of 3 dicts [{emoji, label, framing, source_url}],
+    or [] if generation fails or the response is malformed.
+    """
+    if not articles:
+        return []
+    items_text = "\n".join(
+        f"{i+1}. [{a.get('source', '')}] {a.get('title', '')} — {a.get('summary_en', '')}"
+        for i, a in enumerate(articles)
+    )
+    prompt = BRIEF_PROMPT.format(items=items_text)
+    try:
+        resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        data = json.loads(_strip_code_fence(resp.text or ""))
+        if not isinstance(data, list) or len(data) != 3:
+            print(
+                f"[generate_brief] unexpected shape: {type(data).__name__} "
+                f"len={len(data) if isinstance(data, list) else '?'}",
+                flush=True,
+            )
+            return []
+        result = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            emoji      = str(item.get("emoji")      or "📰").strip()
+            label      = str(item.get("label")      or "").strip()
+            framing    = str(item.get("framing")    or "").strip()
+            source_url = str(item.get("source_url") or "").strip()
+            if label and framing:
+                result.append({"emoji": emoji, "label": label,
+                                "framing": framing, "source_url": source_url})
+        if len(result) == 3:
+            return result
+        print(f"[generate_brief] {len(result)}/3 valid items after validation", flush=True)
+        return []
+    except Exception as e:
+        print(f"[generate_brief] failed: {e}", flush=True)
+        return []
+
+
 def analyze_batch(articles):
     """一次 Gemini 调用分析全部标题。
 

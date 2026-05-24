@@ -48,6 +48,14 @@ window.TRANSLATIONS = {
 
     loadMore: (n) => `Load more (${n} remaining)`,
 
+    briefTitle: "TODAY'S BRIEF",
+    briefDate: () => {
+      const d = new Date();
+      const m = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()];
+      return `· ${m} ${d.getDate()}`;
+    },
+    briefEmpty: "Pull latest to generate today's brief",
+
     toastAddedNew: (n) => `+${n} new stor${n === 1 ? "y" : "ies"}`,
     toastNoNew: "All caught up",
     toastRefreshed: "Refreshed",
@@ -105,6 +113,13 @@ window.TRANSLATIONS = {
 
     loadMore: (n) => `加载更多(还剩 ${n} 条)`,
 
+    briefTitle: "今日简报",
+    briefDate: () => {
+      const d = new Date();
+      return `· ${d.getMonth()+1}月${d.getDate()}日`;
+    },
+    briefEmpty: "获取最新以生成今日简报",
+
     toastAddedNew: (n) => `+${n} 条新内容`,
     toastNoNew: "已是最新",
     toastRefreshed: "已刷新",
@@ -161,6 +176,13 @@ window.TRANSLATIONS = {
     emptyNoData: "データなし — 「最新を取得」をクリックして読み込み。",
 
     loadMore: (n) => `もっと見る(残り ${n} 件)`,
+
+    briefTitle: "本日のブリーフ",
+    briefDate: () => {
+      const d = new Date();
+      return `· ${d.getMonth()+1}月${d.getDate()}日`;
+    },
+    briefEmpty: "最新を取得して今日のブリーフを生成",
 
     toastAddedNew: (n) => `+${n}件の新着`,
     toastNoNew: "最新の状態です",
