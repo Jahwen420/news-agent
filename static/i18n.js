@@ -1,16 +1,16 @@
 // UI 翻译字典 + 全局 t() 函数。在 index.html 主脚本之前加载。
-// 用法:t("refresh") → "Refresh" / "刷新" / "更新"
+// 用法:t("refresh") → "Pull latest" / "获取最新" / "最新を取得"
 // 带参数:t("loadMore", 12) → 模板函数被调用,返回字符串
 // 缺 key 时 fallback 到英文,再缺就返回 key 本身,保证不崩。
 
 window.TRANSLATIONS = {
   en: {
-    pageTitle: "Today's Headlines",
+    pageTitle: "Loop.",
     loading: "Loading…",
-    refresh: "Refresh",
-    refreshing: "Refreshing…",
+    refresh: "Pull latest",
+    refreshing: "Pulling…",
 
-    filterAll: "All",
+    filterAll: "Everything",
     topicGeopolitics: "Geopolitics",
     topicBusiness: "Business",
     topicTech: "Tech",
@@ -37,19 +37,19 @@ window.TRANSLATIONS = {
     pickJapanese: "日本語",
 
     headerStats: (count, time) =>
-      `Showing ${count} stor${count === 1 ? "y" : "ies"} from the past 24 hours · Last refreshed ${time}`,
-    headerNever: "Last refreshed: never — click Refresh to load news",
+      `${count} stor${count === 1 ? "y" : "ies"} · past 24h · Updated ${time}`,
+    headerNever: "Pull latest to load your first batch of stories",
 
     justNow: "just now",
     timeAgo: (n, unit) => `${n}${unit} ago`,
 
-    emptyFiltered: "No articles match this filter.",
-    emptyNoData: "No data yet — click Refresh to fetch.",
+    emptyFiltered: "Nothing here yet. Try another filter.",
+    emptyNoData: "No stories yet — pull latest to fetch.",
 
     loadMore: (n) => `Load more (${n} remaining)`,
 
-    toastAddedNew: (n) => `Added ${n} new article${n === 1 ? "" : "s"}`,
-    toastNoNew: "No new articles since last refresh",
+    toastAddedNew: (n) => `+${n} new stor${n === 1 ? "y" : "ies"}`,
+    toastNoNew: "All caught up",
     toastRefreshed: "Refreshed",
     toastPartialFail: (srcs) => `Refreshed with partial data: ${srcs} failed`,
     toastRefreshFailed: (msg) => `Refresh failed: ${msg}`,
@@ -59,12 +59,12 @@ window.TRANSLATIONS = {
   },
 
   zh: {
-    pageTitle: "今日新闻",
+    pageTitle: "Loop.",
     loading: "加载中…",
-    refresh: "刷新",
-    refreshing: "刷新中…",
+    refresh: "获取最新",
+    refreshing: "获取中…",
 
-    filterAll: "全部",
+    filterAll: "全部内容",
     topicGeopolitics: "地缘政治",
     topicBusiness: "商业",
     topicTech: "科技",
@@ -92,7 +92,7 @@ window.TRANSLATIONS = {
 
     headerStats: (count, time) =>
       `显示过去 24 小时内的 ${count} 条新闻 · 最后更新于 ${time}`,
-    headerNever: "尚未刷新 — 点击「刷新」加载新闻",
+    headerNever: "尚未加载 — 点击「获取最新」加载新闻",
 
     justNow: "刚刚",
     timeAgo: (n, unit) => {
@@ -100,13 +100,13 @@ window.TRANSLATIONS = {
       return `${n} ${units[unit] || ""}`;
     },
 
-    emptyFiltered: "没有匹配此筛选的新闻。",
-    emptyNoData: "暂无数据 — 点击「刷新」获取新闻。",
+    emptyFiltered: "暂无内容。试试其他筛选。",
+    emptyNoData: "暂无数据 — 点击「获取最新」加载新闻。",
 
     loadMore: (n) => `加载更多(还剩 ${n} 条)`,
 
-    toastAddedNew: (n) => `新增 ${n} 条新闻`,
-    toastNoNew: "暂无新内容",
+    toastAddedNew: (n) => `+${n} 条新内容`,
+    toastNoNew: "已是最新",
     toastRefreshed: "已刷新",
     toastPartialFail: (srcs) => `部分数据缺失:${srcs} 抓取失败`,
     toastRefreshFailed: (msg) => `刷新失败:${msg}`,
@@ -116,10 +116,10 @@ window.TRANSLATIONS = {
   },
 
   ja: {
-    pageTitle: "本日のニュース",
+    pageTitle: "Loop.",
     loading: "読み込み中…",
-    refresh: "更新",
-    refreshing: "更新中…",
+    refresh: "最新を取得",
+    refreshing: "取得中…",
 
     filterAll: "すべて",
     topicGeopolitics: "地政学",
@@ -149,7 +149,7 @@ window.TRANSLATIONS = {
 
     headerStats: (count, time) =>
       `過去24時間の${count}件のニュースを表示 · 最終更新 ${time}`,
-    headerNever: "未更新 — 「更新」をクリックしてニュースを読み込み",
+    headerNever: "「最新を取得」をクリックしてニュースを読み込み",
 
     justNow: "たった今",
     timeAgo: (n, unit) => {
@@ -157,13 +157,13 @@ window.TRANSLATIONS = {
       return `${n}${units[unit] || ""}`;
     },
 
-    emptyFiltered: "このフィルターに一致する記事はありません。",
-    emptyNoData: "データなし — 「更新」をクリックして読み込み。",
+    emptyFiltered: "該当なし。他のフィルターをお試しください。",
+    emptyNoData: "データなし — 「最新を取得」をクリックして読み込み。",
 
     loadMore: (n) => `もっと見る(残り ${n} 件)`,
 
-    toastAddedNew: (n) => `${n}件の新着ニュース`,
-    toastNoNew: "新しいニュースはありません",
+    toastAddedNew: (n) => `+${n}件の新着`,
+    toastNoNew: "最新の状態です",
     toastRefreshed: "更新しました",
     toastPartialFail: (srcs) => `一部データなし:${srcs} の取得失敗`,
     toastRefreshFailed: (msg) => `更新失敗:${msg}`,

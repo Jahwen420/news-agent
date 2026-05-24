@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Today's Headlines</title>
+<title>Loop.</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -13,14 +13,15 @@
     --muted: #6e6e73;
     --soft: #8e8e93;
     --border: rgba(0, 0, 0, 0.06);
-    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-    --shadow-hover: 0 2px 4px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.08);
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.05);
+    --shadow-hover: 0 2px 6px rgba(0,0,0,0.06), 0 12px 36px rgba(0,0,0,0.09);
     --chip-bg: transparent;
     --chip-border: rgba(0, 0, 0, 0.12);
     --chip-active: #1d1d1f;
     --chip-active-text: #ffffff;
-    --must-color: #d32f2f;
+    --must-color: #c62828;
     --worth-color: #b27d00;
+    --accent: #5B5FDE;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -37,6 +38,7 @@
       --chip-active-text: #1d1d1f;
       --must-color: #ff7a7a;
       --worth-color: #e0b84a;
+      --accent: #7B7FFF;
     }
   }
   * { box-sizing: border-box; }
@@ -48,25 +50,57 @@
     -webkit-font-smoothing: antialiased;
     line-height: 1.5;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 80px; }
-  @media (min-width: 768px) { .wrap { padding: 32px 24px 96px; } }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px 80px; }
+  @media (min-width: 768px) { .wrap { padding: 0 24px 96px; } }
 
-  header { padding: 8px 0 12px; }
-  .title-row {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px;
+  /* ─── Hero ────────────────────────────────────────────────────────── */
+  .hero {
+    padding: 48px 0 32px;
   }
-  header h1 {
-    font-size: 24px; font-weight: 700;
-    letter-spacing: -0.02em; margin: 0;
+  @media (min-width: 768px) {
+    .hero { padding: 96px 0 48px; }
   }
-  @media (min-width: 768px) { header h1 { font-size: 32px; } }
-  header .meta {
-    font-size: 13px; color: var(--muted);
-    margin-top: 6px;
+  .hero-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 36px;
+  }
+  .brand {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .hero-headline {
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    max-width: 640px;
+    margin: 0 0 16px;
+    color: var(--text);
+  }
+  @media (min-width: 768px) {
+    .hero-headline { font-size: 48px; }
+  }
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 500px;
+    margin: 0;
+    line-height: 1.55;
+  }
+  .hero-meta {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    padding: 0;
     letter-spacing: -0.005em;
   }
-  /* 头部右侧:语言切换 + 刷新,横排,移动端不挤压 */
+
+  /* ─── Actions: lang switcher + refresh ───────────────────────────── */
   .actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .lang-switcher {
     display: inline-flex;
@@ -96,7 +130,6 @@
     .lang-switcher button { padding: 6px 8px; font-size: 11px; }
   }
 
-  /* 带文字的描边按钮:移动端也保留 "Refresh" label,不退化为图标 */
   #refresh {
     display: inline-flex; align-items: center;
     gap: 6px;
@@ -116,20 +149,19 @@
   #refresh:active { transform: scale(0.98); }
   #refresh:disabled { opacity: 0.6; cursor: wait; transform: none; box-shadow: var(--shadow); }
   #refresh .rr-icon { display: inline-block; font-size: 14px; line-height: 1; }
-  /* spinning 只转 icon,文字保持静止 */
   #refresh.spinning .rr-icon { animation: spin 1s linear infinite; }
   @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
-  /* sticky 横向滚动筛选条 */
+  /* ─── Sticky filter bar ───────────────────────────────────────────── */
   .filter-bar {
     position: sticky;
     top: 0;
     z-index: 10;
     background: var(--bg);
-    margin: 8px -16px 16px;
+    margin: 0 -16px 16px;
     padding: 8px 0;
   }
-  @media (min-width: 768px) { .filter-bar { margin: 12px 0 20px; padding: 0; } }
+  @media (min-width: 768px) { .filter-bar { margin: 0 0 20px; padding: 0; } }
   .chips {
     display: flex;
     gap: 8px;
@@ -154,67 +186,87 @@
     white-space: nowrap;
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
   .chip:hover { border-color: var(--text); }
   .chip.active {
-    background: var(--chip-active);
-    color: var(--chip-active-text);
-    border-color: var(--chip-active);
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
   }
 
-  /* 文章卡片 */
+  /* ─── Cards ───────────────────────────────────────────────────────── */
   .feed { display: flex; flex-direction: column; gap: 10px; }
   article {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px 16px;
+    border-left: 3px solid transparent;
+    border-radius: 20px;
+    padding: 16px;
     box-shadow: var(--shadow);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-  }
-  @media (min-width: 768px) { article { padding: 18px 20px; } }
-  article:active { transform: scale(0.99); }
-  @media (hover: hover) {
-    article:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
-  }
-  /* 卡片整体改成水平 flex,缩略图在右,有图无图都用同一套布局 */
-  article {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-left-color 0.18s ease;
     display: flex;
-    gap: 14px;
+    gap: 12px;
     align-items: flex-start;
   }
+  @media (min-width: 768px) { article { padding: 20px; gap: 14px; } }
+  article:active { transform: scale(0.99); }
+
+  @media (hover: hover) {
+    article:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+      border-left-color: var(--accent);
+    }
+  }
+
+  /* must_read: muted red left accent; on hover transitions to --accent */
+  article.must-read-border { border-left-color: var(--must-color); }
+  @media (hover: hover) {
+    article.must-read-border:hover { border-left-color: var(--accent); }
+  }
+
   .card-body { flex: 1; min-width: 0; }
   article a { color: inherit; text-decoration: none; display: block; }
-  article a:hover .title { text-decoration: underline; text-decoration-thickness: 1px; }
 
-  /* 顶部一行:左=来源·立场+i,右=时间 */
+  /* ─── Card top row ────────────────────────────────────────────────── */
   .card-top {
     display: flex; justify-content: space-between; align-items: center;
     gap: 12px;
-    font-size: 12px;
-    color: var(--muted);
     line-height: 1.4;
   }
+  /* Source badge: small, uppercase, spaced */
   .src-line {
-    font-weight: 500;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
     display: inline-flex; align-items: center; gap: 2px;
     min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .time-ago { font-weight: 500; color: var(--soft); flex-shrink: 0; }
+  .time-ago { font-size: 11px; font-weight: 500; color: var(--soft); flex-shrink: 0; }
 
+  /* ─── Title with left-to-right underline animation ────────────────── */
   .title {
     font-size: 16px; font-weight: 600;
     margin-top: 6px; letter-spacing: -0.01em;
     line-height: 1.4;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    transition: background-size 0.25s ease;
   }
   @media (min-width: 768px) { .title { font-size: 18px; } }
+  article a:hover .title { background-size: 100% 1px; }
+
   .summary-en {
     font-size: 14px; color: var(--muted);
     margin-top: 8px; line-height: 1.5;
   }
 
-  /* 底部行:始终渲染(放 Translate 按钮);importance 只对 must_read / worth_knowing 显示 */
+  /* ─── Card bottom ─────────────────────────────────────────────────── */
   .card-bottom {
     margin-top: 10px;
     display: flex; align-items: center; justify-content: space-between;
@@ -223,9 +275,9 @@
   .importance { font-size: 12px; font-weight: 600; }
   .importance.must-read     { color: var(--must-color); }
   .importance.worth-knowing { color: var(--worth-color); }
-  .importance-spacer { flex: 1; }  /* 没 importance 时占位,让 Translate 留在右侧 */
+  .importance-spacer { flex: 1; }
 
-  /* Translate / Show original:克制的文本按钮,不抢标题视线 */
+  /* ─── Translate button + menu ─────────────────────────────────────── */
   .translate-wrap { position: relative; }
   .translate-btn {
     background: transparent; border: none;
@@ -238,7 +290,6 @@
   .translate-btn:hover { color: var(--text); text-decoration: underline; }
   .translate-btn:disabled { opacity: 0.55; cursor: wait; text-decoration: none; }
 
-  /* EN UI 下点 Translate 弹出的小菜单(中文 / 日本語) */
   .translate-menu {
     position: absolute;
     bottom: calc(100% + 6px);
@@ -266,9 +317,10 @@
   }
   .translate-menu button:hover { background: var(--bg); }
 
-  /* 缩略图:右侧固定方块,object-fit:cover 裁剪 */
+  /* ─── Thumbnail ───────────────────────────────────────────────────── */
+  /* Mobile: 72×72, gap already set on article (12px) */
   .thumb {
-    width: 80px; height: 80px;
+    width: 72px; height: 72px;
     border-radius: 10px;
     object-fit: cover;
     flex-shrink: 0;
@@ -278,13 +330,13 @@
     .thumb { width: 120px; height: 120px; }
   }
 
-  /* Load more:primary action,mobile 满宽,desktop 居中 240px */
+  /* ─── Load more ───────────────────────────────────────────────────── */
   .load-more-wrap { margin-top: 28px; display: flex; justify-content: center; }
   .load-more {
     display: block;
     width: 100%;
-    background: var(--chip-active);
-    color: var(--chip-active-text);
+    background: var(--accent);
+    color: #ffffff;
     border: none;
     padding: 14px 24px;
     border-radius: 12px;
@@ -301,7 +353,7 @@
     .load-more { width: auto; min-width: 240px; }
   }
 
-  /* "i" 信息按钮:小、轻、与周围文字同色,只在 hover/focus 时出 tooltip */
+  /* ─── Bias info "i" button ────────────────────────────────────────── */
   .bias-info {
     all: unset;
     display: inline-flex; align-items: center; justify-content: center;
@@ -337,11 +389,11 @@
   .bias-info:focus::after,
   .bias-info:focus-visible::after { opacity: 1; }
 
+  /* ─── Empty + Toast ───────────────────────────────────────────────── */
   .empty {
     text-align: center; padding: 60px 16px;
     color: var(--muted); font-size: 15px;
   }
-
   .toast {
     position: fixed;
     bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -358,23 +410,27 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="title-row">
-      <h1 id="pageTitle">Today's Headlines</h1>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="hero-nav">
+      <span class="brand">Loop.</span>
       <div class="actions">
         <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
           <button type="button" data-lang="en">EN</button>
           <button type="button" data-lang="zh">中</button>
           <button type="button" data-lang="ja">日</button>
         </div>
-        <button id="refresh" type="button" aria-label="Refresh news">
+        <button id="refresh" type="button" aria-label="Pull latest">
           <span class="rr-icon" aria-hidden="true">🔄</span>
-          <span class="rr-label">Refresh</span>
+          <span class="rr-label">Pull latest</span>
         </button>
       </div>
     </div>
-    <div class="meta" id="metaLine"></div>
-  </header>
+    <h1 class="hero-headline">Don't be the last one to know.</h1>
+    <p class="hero-sub">AI-curated brief of what's worth knowing today — for people who want to stay sharp in conversation.</p>
+    <p class="hero-meta" id="metaLine"></p>
+  </section>
 
   <nav class="filter-bar" aria-label="Filters">
     <div class="chips" id="chips"></div>
@@ -390,7 +446,6 @@
 <script src="/static/i18n.js"></script>
 <script>
   // ─── 表 + 静态映射 ──────────────────────────────────────────────────────
-  // emoji + class 留在 JS,文字 label 走 i18n
   const IMP = {
     must_read:     ["🔥", "importanceMustRead",     "must-read"],
     worth_knowing: ["📌", "importanceWorthKnowing", "worth-knowing"],
@@ -398,7 +453,6 @@
   };
   const IMP_RANK = { must_read: 0, worth_knowing: 1, if_time: 2 };
 
-  // AllSides 评级 → 英文字符串。展示时通过 BIAS_I18N 拿到 t() key
   const SOURCE_BIAS = {
     "BBC": "Lean Left", "NPR": "Lean Left", "Guardian": "Left",
     "Nikkei Asia": "Center", "SCMP": "Center",
@@ -411,7 +465,6 @@
     "Right":      "biasRight",
   };
 
-  // 筛选条配置:emoji 在 JS,文字 label 走 i18n key
   const CHIPS = [
     { filter: "all",                emoji: "",   key: "filterAll" },
     { filter: "topic:Geopolitics",  emoji: "🌍", key: "topicGeopolitics" },
@@ -433,7 +486,6 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
     (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-  // localStorage 里的"翻译态":{url: {lang, title, summary, orig_title, orig_summary}}
   const TRANSLATED_KEY = "translated_articles";
   function getTranslatedStates() {
     try { return JSON.parse(localStorage.getItem(TRANSLATED_KEY) || "{}"); }
@@ -441,7 +493,7 @@
   }
   function setTranslatedStates(s) {
     try { localStorage.setItem(TRANSLATED_KEY, JSON.stringify(s)); }
-    catch { /* quota — 忽略 */ }
+    catch { /* quota */ }
   }
 
   function toast(msg) {
@@ -452,7 +504,6 @@
     el._timer = setTimeout(() => el.classList.remove("show"), 3000);
   }
 
-  // ─── 相对时间:通过 t('timeAgo', n, unit) 走当前语言 ─────────────────────
   function relativeTime(iso) {
     if (!iso) return "";
     const ms = new Date(iso).getTime();
@@ -483,7 +534,7 @@
     });
   }
 
-  // ─── 卡片渲染 ───────────────────────────────────────────────────────────
+  // ─── Card renderer ──────────────────────────────────────────────────
   function renderCard(a) {
     const [iE, iLabelKey, iC] = IMP[a.importance] || ["", "", ""];
     const bias = SOURCE_BIAS[a.source];
@@ -494,7 +545,6 @@
       ? ` · ${esc(biasLabel)}<button class="bias-info" type="button" aria-label="About bias rating" data-tooltip="${esc(t("biasTooltip"))}"><span>i</span></button>`
       : "";
 
-    // 翻译态:有就用 cached 内容,没就用原文
     const states = getTranslatedStates();
     const cached = states[a.url];
     const displayTitle   = cached ? cached.title   : (a.title || "");
@@ -510,8 +560,11 @@
       ? `<img class="thumb" src="${esc(a.og_image)}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
       : "";
 
+    // Add must-read-border class so left accent is visible
+    const borderClass = a.importance === "must_read" ? ' class="must-read-border"' : '';
+
     return `
-      <article data-url="${esc(a.url)}">
+      <article${borderClass} data-url="${esc(a.url)}">
         <div class="card-body">
           <div class="card-top">
             <span class="src-line">${esc(a.source)}${biasPart}</span>
@@ -547,7 +600,6 @@
       : "";
     list.innerHTML = shown.map(renderCard).join("") + more;
 
-    // 事件:Translate / Show original 用事件委托更稳,直接绑也行
     list.querySelectorAll(".translate-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -570,7 +622,7 @@
     render();
   }
 
-  // ─── 筛选条:渲染 + 事件 ────────────────────────────────────────────────
+  // ─── Filter chips ───────────────────────────────────────────────────
   function renderChips() {
     const html = CHIPS.map(c => {
       const label = (c.emoji ? c.emoji + " " : "") + t(c.key);
@@ -590,7 +642,7 @@
     render();
   }
 
-  // ─── Header meta 行 ─────────────────────────────────────────────────────
+  // ─── Hero meta line ─────────────────────────────────────────────────
   function setMetaLine({ count, lastRefreshed }) {
     const el = $("#metaLine");
     if (!lastRefreshed) {
@@ -601,7 +653,7 @@
     el.textContent = t("headerStats", count, rel);
   }
 
-  // ─── 取数据 ─────────────────────────────────────────────────────────────
+  // ─── Data fetch ─────────────────────────────────────────────────────
   async function loadNews() {
     try {
       const r = await fetch("/api/news");
@@ -615,7 +667,7 @@
     }
   }
 
-  // ─── Refresh 按钮 + polling ────────────────────────────────────────────
+  // ─── Refresh button + polling ────────────────────────────────────────
   function setRefreshButton(busy) {
     const btn = $("#refresh");
     const label = btn.querySelector(".rr-label");
@@ -653,7 +705,7 @@
       } else if (s.status === "error") {
         toast(t("toastRefreshFailed", s.error || "unknown error"));
       }
-    } catch (e) { /* 抖动,下一轮再试 */ }
+    } catch (e) { /* transient — retry next tick */ }
   }
 
   async function doRefresh() {
@@ -692,14 +744,13 @@
     }
   });
 
-  // ─── 翻译流:点击 → (en 选语种 / zh,ja 直接翻) → /api/translate → 渲染 ─
+  // ─── Translation flow ────────────────────────────────────────────────
   function onTranslateClick(btn, url) {
     const lang = window.getUiLang();
     if (lang === "zh" || lang === "ja") {
       translateArticle(url, lang);
       return;
     }
-    // EN 模式:弹小菜单
     document.querySelectorAll(".translate-menu").forEach(el => el.remove());
     const menu = document.createElement("div");
     menu.className = "translate-menu";
@@ -715,7 +766,6 @@
         translateArticle(url, b.dataset.lang);
       });
     });
-    // 点外面关闭
     setTimeout(() => {
       document.addEventListener("click", function close(ev) {
         if (!menu.contains(ev.target)) {
@@ -754,7 +804,6 @@
       const data = await r.json();
       titleEl.textContent   = data.title_translated;
       summaryEl.textContent = data.summary_translated;
-      // 持久化到 localStorage:刷新页面也保持翻译态
       const states = getTranslatedStates();
       states[url] = {
         lang,
@@ -790,13 +839,11 @@
     setTranslatedStates(states);
   }
 
-  // ─── 语言切换:重渲染所有静态文案 + 卡片 + 筛选条 ───────────────────────
+  // ─── i18n apply ──────────────────────────────────────────────────────
   function applyI18n() {
-    document.title = t("pageTitle");
-    $("#pageTitle").textContent = t("pageTitle");
+    document.title = "Loop.";
     $("#refresh").querySelector(".rr-label").textContent =
       state.refreshing ? t("refreshing") : t("refresh");
-    // 高亮当前激活的语言按钮
     document.querySelectorAll("#langSwitcher button").forEach(b => {
       b.classList.toggle("active", b.dataset.lang === window.getUiLang());
     });
@@ -810,13 +857,13 @@
     applyI18n();
   }
 
-  // ─── 启动 ───────────────────────────────────────────────────────────────
+  // ─── Boot ────────────────────────────────────────────────────────────
   $("#refresh").addEventListener("click", doRefresh);
   document.querySelectorAll("#langSwitcher button").forEach(b => {
     b.addEventListener("click", () => changeLang(b.dataset.lang));
   });
-  applyI18n();   // 应用当前语言到所有静态文案 + 筛选条
-  loadNews();    // 拉数据并渲染
+  applyI18n();
+  loadNews();
 </script>
 </body>
 </html>
