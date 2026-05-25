@@ -71,6 +71,9 @@
     letter-spacing: -0.01em;
     color: var(--text);
   }
+  /* "Loop" rotates on Pull latest; the trailing "." stays put */
+  .brand-loop { display: inline-block; transform-origin: 50% 55%; }
+  .brand-loop.spinning { animation: spin 0.7s ease-in-out; }
 
   .hero-headline {
     font-family: ui-serif, Georgia, "Times New Roman", serif;
@@ -470,7 +473,7 @@
   <!-- ── Hero (compressed on mobile) ── -->
   <section class="hero">
     <div class="hero-nav">
-      <span class="brand">Loop.</span>
+      <span class="brand"><span class="brand-loop">Loop</span>.</span>
       <div class="actions">
         <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
           <button type="button" data-lang="en">EN</button>
@@ -829,6 +832,14 @@
 
   async function doRefresh() {
     if (state.refreshing) return;
+    // Quick brand spin — visual feedback that the pull is happening
+    const loopEl = document.querySelector(".brand-loop");
+    if (loopEl) {
+      loopEl.classList.remove("spinning"); // allow retrigger
+      void loopEl.offsetWidth;             // reflow so the animation restarts
+      loopEl.classList.add("spinning");
+      setTimeout(() => loopEl.classList.remove("spinning"), 700);
+    }
     setRefreshButton(true);
     try {
       const r = await fetch("/api/refresh", { method: "POST" });

@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 from fetcher import fetch_all, analyze_batch, fetch_og_images, translate_article, generate_brief
 from db import (
@@ -155,6 +157,40 @@ def _run_refresh():
         )
 
 
+# ─── Scheduled auto-refresh (APScheduler) ───────────────────────────────────
+# Runs every 3 hours. Shares refresh_state with the manual POST /api/refresh
+# endpoint so the two never collide.  Process-restart resets the schedule —
+# fine on Railway which keeps us alive between scheduled fires.
+_scheduler: BackgroundScheduler | None = None
+
+
+def _scheduled_refresh():
+    """APScheduler entrypoint.  Runs the same logic as POST /api/refresh."""
+    with _state_lock:
+        if refresh_state["status"] == "running":
+            print("⏰ Scheduled refresh skipped — manual refresh already running", flush=True)
+            return
+        refresh_state.update({
+            "status": "running",
+            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "finished_at": None,
+            "stats": None,
+            "sources_ok": [],
+            "sources_failed": [],
+            "error": None,
+        })
+
+    print("⏰ Scheduled refresh started", flush=True)
+    _run_refresh()  # updates refresh_state to done/error at the end
+    snap = _snapshot_state()
+    if snap["status"] == "error":
+        print(f"⏰ Scheduled refresh failed: {snap.get('error')}", flush=True)
+    else:
+        n_new = (snap.get("stats") or {}).get("new", 0)
+        plural = "" if n_new == 1 else "s"
+        print(f"⏰ Scheduled refresh done, added {n_new} new article{plural}", flush=True)
+
+
 # ─── 内存 rate limit:每个 endpoint 独立 bucket,共享一把锁 ─────────────────
 _RATE_WINDOW = 60  # seconds
 _REFRESH_LIMIT = 5       # POST /api/refresh
@@ -186,11 +222,38 @@ def _rate_check(ip: str, bucket: dict, limit: int):
         return True, 0
 
 
-# ─── Startup ────────────────────────────────────────────────────────────────
+# ─── Startup / Shutdown ─────────────────────────────────────────────────────
 @app.on_event("startup")
 async def _startup():
-    """Populate brief cache from existing DB articles (non-blocking background thread)."""
+    """Populate brief cache + start 3-hour auto-refresh scheduler."""
+    global _scheduler
+    # Brief: regenerate from existing DB articles in the background
     threading.Thread(target=_run_generate_brief, daemon=True).start()
+
+    # Auto-refresh every 3 hours.  max_instances=1 + coalesce: if a previous
+    # job is still running when the next fires, don't pile up — wait for one
+    # free slot.  Our _scheduled_refresh() also guards on refresh_state.
+    _scheduler = BackgroundScheduler(daemon=True)
+    _scheduler.add_job(
+        _scheduled_refresh,
+        IntervalTrigger(hours=3),
+        id="auto_refresh",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    _scheduler.start()
+    print("⏰ Scheduler started — auto-refresh every 3h", flush=True)
+
+
+@app.on_event("shutdown")
+async def _shutdown():
+    """Stop the scheduler cleanly so we don't leak threads on reload."""
+    global _scheduler
+    if _scheduler is not None:
+        _scheduler.shutdown(wait=False)
+        print("⏰ Scheduler stopped", flush=True)
+        _scheduler = None
 
 
 # ─── Routes ─────────────────────────────────────────────────────────────────

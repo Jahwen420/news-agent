@@ -35,6 +35,39 @@ def _get_soup(url):
 def _clean(text): return " ".join(text.split())
 
 
+# Common scraper-noise prefixes that some sources prepend to headlines.
+# Stripped verbatim (case-sensitive), then we re-strip whitespace.
+PREFIXES_TO_STRIP = [
+    "Developing | ", "DEVELOPING: ",
+    "Breaking | ", "BREAKING: ",
+    "UPDATED: ", "UPDATE: ",
+    "Exclusive | ", "EXCLUSIVE: ",
+    "Watch: ", "WATCH: ",
+    "Listen: ", "LISTEN: ",
+    "Photos: ", "PHOTOS: ",
+    "Video: ", "VIDEO: ",
+]
+
+
+def _clean_title(title: str) -> str:
+    """Strip well-known noise prefixes like 'Developing | ', 'WATCH: ', etc.
+
+    Loops in case multiple prefixes are stacked (rare but cheap to handle).
+    Returns the title with surrounding whitespace removed.
+    """
+    if not title:
+        return title
+    changed = True
+    while changed:
+        changed = False
+        for p in PREFIXES_TO_STRIP:
+            if title.startswith(p):
+                title = title[len(p):]
+                changed = True
+                break
+    return title.strip()
+
+
 def _find_time(tag, max_depth=4):
     """从 tag 向上找最近祖先里第一个带 datetime 的 <time>。找不到返回 None。
 
@@ -56,6 +89,7 @@ def _collect(soup, base_url, tag_names, source, noise_re=None):
     seen, items = set(), []
     for tag in soup.find_all(tag_names):
         title = _clean(tag.get_text(separator=" ", strip=True))
+        title = _clean_title(title)  # strip "Developing | ", "WATCH: ", etc.
         if not title or len(title) < 20 or title in seen:
             continue
         if noise_re and noise_re.search(title):
@@ -276,19 +310,22 @@ def translate_article(title, summary, target_lang):
 
 
 BRIEF_PROMPT = """\
-You are a sharp editorial voice writing a daily brief for ambitious professionals. \
-From these news items, select the 3 most consequential developments today.
+You are a sharp, opinionated editor writing a daily brief for ambitious 25-35 year olds who want to sound smart at dinner tonight.
 
-For each, write:
-- emoji: one relevant emoji
-- label: 3-5 word topic label (e.g. 'China-US Tech War')
-- framing: ONE sentence (max 22 words) that captures WHY this matters right now. \
-Be specific and opinionated. Avoid: 'experts say', 'this is significant', 'this highlights'. \
-Instead say what the consequence actually is.
+From these news items, pick the 3 most consequential developments.
+For each, write ONE sentence (max 20 words) that:
+- Names a SPECIFIC fact or number, not a vague trend
+- States the actual consequence, not that 'experts are concerned'
+- Sounds like something a well-informed friend would say, not a news anchor
 
-Return ONLY valid JSON — a list of exactly 3 objects:
-[{{"emoji": "...", "label": "...", "framing": "...", \
-"source_url": "<url of the most relevant article>"}}]
+BAD: 'Rising tensions in the Middle East could jeopardize global energy security.'
+GOOD: 'Iran just tested missiles 40km from a US carrier — first time since 2019.'
+
+BAD: 'The development signals significant geopolitical shifts.'
+GOOD: 'Taiwan's arms deal is on hold because the US ran out of Patriot missiles for Ukraine.'
+
+Return ONLY valid JSON:
+[{{"emoji": "...", "label": "...", "framing": "...", "source_url": "..."}}]
 
 News items:
 {items}"""
