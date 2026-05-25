@@ -172,7 +172,13 @@ def _similar(a, b, th=0.85): return SequenceMatcher(None, _norm(a), _norm(b)).ra
 
 
 def fetch_all():
-    """跑五源 → 轮询交错 → 模糊去重 → 最多 50 条。返回 (articles, statuses)。"""
+    """跑五源 → 轮询交错 → 模糊去重 → 最多 50 条。返回 (articles, statuses)。
+
+    Sources fetched in parallel (one thread per source) since each is
+    network-bound on a different domain. Total wall time ≈ slowest source,
+    not sum of all five. Order is preserved via index slot so the round-
+    robin interleave below still alternates BBC → NPR → Guardian → ….
+    """
     sources = [
         ("BBC", fetch_bbc),
         ("NPR", fetch_npr),
@@ -180,15 +186,24 @@ def fetch_all():
         ("Nikkei Asia", fetch_nikkei_asia),
         ("SCMP", fetch_scmp),
     ]
-    statuses, per_source = {}, []
-    for name, fn in sources:
+    statuses = {}
+    per_source = [[] for _ in sources]
+
+    def _run_one(idx, name, fn):
         try:
-            items = fn()
-            statuses[name] = f"OK ({len(items)} headlines)"
-            per_source.append(items)
+            return idx, name, fn(), None
         except Exception as e:
-            statuses[name] = f"FAILED: {type(e).__name__}: {e}"
-            per_source.append([])
+            return idx, name, [], e
+
+    with ThreadPoolExecutor(max_workers=len(sources)) as pool:
+        futures = [pool.submit(_run_one, i, n, f) for i, (n, f) in enumerate(sources)]
+        for fut in futures:
+            idx, name, items, err = fut.result()
+            if err is not None:
+                statuses[name] = f"FAILED: {type(err).__name__}: {err}"
+            else:
+                statuses[name] = f"OK ({len(items)} headlines)"
+                per_source[idx] = items
 
     # 轮询交错:每源贡献 1 条,确保大源不会霸榜
     combined = []
@@ -382,15 +397,17 @@ def generate_brief(articles):
     try:
         resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         data = json.loads(_strip_code_fence(resp.text or ""))
-        if not isinstance(data, list) or len(data) != 3:
+        # Be lenient on count: prompt asks for 3 but if Gemini returns 2
+        # good items + 1 malformed one, we'd rather show the 2 than nothing.
+        # We still cap at 3 below to respect the brief format.
+        if not isinstance(data, list):
             print(
-                f"[generate_brief] unexpected shape: {type(data).__name__} "
-                f"len={len(data) if isinstance(data, list) else '?'}",
+                f"[generate_brief] unexpected shape: {type(data).__name__}",
                 flush=True,
             )
             return []
         result = []
-        for item in data:
+        for item in data[:5]:  # safety cap even if Gemini overshoots
             if not isinstance(item, dict):
                 continue
             emoji      = str(item.get("emoji")      or "📰").strip()
@@ -408,10 +425,14 @@ def generate_brief(articles):
             if label and framing:
                 result.append({"emoji": emoji, "label": label,
                                 "framing": framing, "source_url": source_url})
-        if len(result) == 3:
-            return result
-        print(f"[generate_brief] {len(result)}/3 valid items after validation", flush=True)
-        return []
+        # Return whatever survived, capped at 3. Showing 1-2 good items beats
+        # showing "no brief yet" because Gemini malformed the 3rd one.
+        if not result:
+            print("[generate_brief] no valid items after validation", flush=True)
+        elif len(result) < 3:
+            print(f"[generate_brief] returning partial brief: {len(result)}/3 items",
+                  flush=True)
+        return result[:3]
     except Exception as e:
         print(f"[generate_brief] failed: {e}", flush=True)
         return []

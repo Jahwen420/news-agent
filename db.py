@@ -76,6 +76,12 @@ def init_db():
     """启动时调一次,幂等。建表 + 给老 DB 加新列(translation 列)。"""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _conn() as c:
+        # WAL mode: readers don't block writers and vice versa — /api/news
+        # stays snappy while /api/refresh is writing. Persistent setting,
+        # only needs to run once per DB file. synchronous=NORMAL is safe
+        # under WAL and significantly faster than the default FULL.
+        c.execute("PRAGMA journal_mode=WAL")
+        c.execute("PRAGMA synchronous=NORMAL")
         c.executescript(SCHEMA)
         # 加列迁移:老 DB 升级,新 DB 由 CREATE 处理。SQLite 没 IF NOT EXISTS for ADD COLUMN
         cols = {r["name"] for r in c.execute("PRAGMA table_info(articles)").fetchall()}

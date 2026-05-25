@@ -69,6 +69,9 @@ window.TRANSLATIONS = {
     toastLoadFailed: (msg) => `Load failed: ${msg}`,
     toastRateLimited: "Rate limited. Slow down.",
     toastTranslateFailed: (msg) => `Translation failed: ${msg}`,
+    toastCopied: "Copied to clipboard",
+    toastCopyFailed: "Copy failed",
+    copyHint: "Click to copy",
   },
 
   zh: {
@@ -138,6 +141,9 @@ window.TRANSLATIONS = {
     toastLoadFailed: (msg) => `加载失败:${msg}`,
     toastRateLimited: "请求过于频繁,请稍后再试。",
     toastTranslateFailed: (msg) => `翻译失败:${msg}`,
+    toastCopied: "已复制到剪贴板",
+    toastCopyFailed: "复制失败",
+    copyHint: "点击复制",
   },
 
   ja: {
@@ -207,6 +213,9 @@ window.TRANSLATIONS = {
     toastLoadFailed: (msg) => `読み込み失敗:${msg}`,
     toastRateLimited: "リクエストが多すぎます。少々お待ちください。",
     toastTranslateFailed: (msg) => `翻訳失敗:${msg}`,
+    toastCopied: "クリップボードにコピーしました",
+    toastCopyFailed: "コピー失敗",
+    copyHint: "クリックでコピー",
   },
 };
 

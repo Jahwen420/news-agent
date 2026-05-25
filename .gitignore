@@ -14,3 +14,6 @@ news.db
 news.db-journal
 news.db-wal
 news.db-shm
+
+# Claude Code workspace config (user-local, should not be shared)
+.claude/

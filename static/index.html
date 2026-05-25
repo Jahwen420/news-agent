@@ -524,9 +524,13 @@
     color: var(--muted);
     line-height: 1.55;
     padding-left: 14px;
+    padding-right: 26px;
     position: relative;
     margin-bottom: 6px;
     letter-spacing: -0.005em;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.15s ease, background 0.15s ease;
   }
   .talking-point::before {
     content: "·";
@@ -535,6 +539,24 @@
     font-size: 16px; font-weight: 700;
     color: var(--soft);
     line-height: 1.55;
+  }
+  /* Tiny copy hint icon — fades in on hover, fades to ✓ briefly after click */
+  .talking-point::after {
+    content: "📋";
+    position: absolute;
+    right: 4px; top: 50%; transform: translateY(-50%);
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  @media (hover: hover) {
+    .talking-point:hover { color: var(--text); background: rgba(91, 95, 222, 0.05); }
+    .talking-point:hover::after { opacity: 0.6; }
+  }
+  .talking-point.copied::after { content: "✓"; opacity: 1; color: var(--accent); }
+  .talking-point:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .talking-point:last-child { margin-bottom: 0; }
 
@@ -877,7 +899,7 @@
            </button>
            <div class="talking-points-collapse">
              <div class="talking-points">
-               ${tpArr.map(p => `<div class="talking-point">${esc(p)}</div>`).join("")}
+               ${tpArr.map(p => `<div class="talking-point" role="button" tabindex="0" title="${esc(t("copyHint"))}">${esc(p)}</div>`).join("")}
              </div>
            </div>
          </div>`
@@ -968,6 +990,38 @@
         label.textContent = expanded
           ? (btn.dataset.labelHide || label.textContent)
           : (btn.dataset.labelShow || label.textContent);
+      });
+    });
+
+    // Talking-point → click to copy. Core value-prop interaction: users
+    // see a quote that would work at dinner and can grab it in one tap.
+    list.querySelectorAll(".talking-point").forEach(el => {
+      const doCopy = async (e) => {
+        e.stopPropagation();
+        const text = el.textContent.trim();
+        try {
+          // navigator.clipboard requires a secure context (https / localhost).
+          // Railway gives us https, so this should always work in prod.
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            // Fallback: hidden textarea + execCommand. Older browsers / file://
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select();
+            document.execCommand("copy"); ta.remove();
+          }
+          el.classList.add("copied");
+          toast(t("toastCopied"));
+          setTimeout(() => el.classList.remove("copied"), 1200);
+        } catch (err) {
+          toast(t("toastCopyFailed"));
+        }
+      };
+      el.addEventListener("click", doCopy);
+      // Keyboard a11y: Enter / Space activates the copy action
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doCopy(e); }
       });
     });
 
