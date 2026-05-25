@@ -89,21 +89,8 @@
     margin: 0 0 12px;
     color: var(--text);
   }
-  @media (min-width: 600px) { .hero-headline { font-size: 32px; margin-bottom: 16px; } }
+  @media (min-width: 600px) { .hero-headline { font-size: 32px; margin-bottom: 0; } }
   @media (min-width: 768px) { .hero-headline { font-size: 48px; } }
-
-  /* Hide subhead on narrow mobile to save vertical space */
-  .hero-sub { display: none; }
-  @media (min-width: 600px) {
-    .hero-sub {
-      display: block;
-      font-size: 18px;
-      color: var(--muted);
-      max-width: 500px;
-      margin: 0;
-      line-height: 1.55;
-    }
-  }
 
   /* ─── Language nudge banner ─────────────────────────────────────── */
   .lang-nudge {
@@ -650,7 +637,6 @@
       <button type="button" class="lang-nudge-close" aria-label="Dismiss">×</button>
     </div>
     <h1 class="hero-headline" id="heroHeadline">Don't be the last one to know.</h1>
-    <p class="hero-sub" id="heroSub">AI-curated news with talking points ready for tonight's dinner.</p>
   </section>
 
   <!-- ── Today's Brief ── -->
@@ -1215,12 +1201,9 @@
   function applyI18n() {
     document.title = t("pageTitle");
 
-    // Hero text — was hardcoded in HTML, now driven by i18n so the headline
-    // and subhead actually swap when you click EN/中/日.
+    // Hero headline — driven by i18n so it swaps when you click EN/中/日.
     const headline = $("#heroHeadline");
     if (headline) headline.textContent = t("heroHeadline");
-    const sub = $("#heroSub");
-    if (sub) sub.textContent = t("heroSub");
 
     // Refresh button label + aria-label
     const refreshBtn = $("#refresh");
