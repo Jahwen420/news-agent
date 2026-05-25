@@ -219,7 +219,18 @@ FALLBACK_ANALYSIS = {
     "summary_en": "(Summary unavailable)",
     "topic": "Other",
     "importance": "if_time",
+    "talking_points": [],
 }
+
+
+TALKING_POINTS_INSTRUCTION = """- "talking_points": list of EXACTLY 2 short conversational lines (max 18 words each) that the reader could SAY to a friend at dinner. Casual, specific, direct — NOT journalism. ONLY for must_read or worth_knowing importance. For if_time, return [] (empty array).
+
+BAD talking_point: "This development has significant implications for regional stability."
+GOOD talking_point: "Apparently the US literally ran out of Patriot missiles — that's why Taiwan's deal got paused."
+
+BAD talking_point: "Experts are concerned about the economic impact."
+GOOD talking_point: "Tesla just lost more market share in China in one quarter than all of 2023 combined."
+"""
 
 CRITERIA = """Topic criteria:
 - Geopolitics: war, diplomacy, sanctions, government relations
@@ -240,7 +251,7 @@ ANALYZE_PROMPT = f"""You are analyzing a news headline. Return ONLY a JSON objec
 - "summary_en": one concise English sentence (max 25 words) explaining why this news matters — background context and significance
 - "topic": one of [Geopolitics, Business, Tech, China, Japan, Science, Other]
 - "importance": one of [must_read, worth_knowing, if_time]
-
+{TALKING_POINTS_INSTRUCTION}
 {CRITERIA}
 
 Headline: {{title}}
@@ -251,7 +262,7 @@ BATCH_PROMPT = f"""You are analyzing {{n}} news headlines. Return ONLY a JSON ar
 - "summary_en": one concise English sentence (max 25 words) explaining why this news matters
 - "topic": one of [Geopolitics, Business, Tech, China, Japan, Science, Other]
 - "importance": one of [must_read, worth_knowing, if_time]
-
+{TALKING_POINTS_INSTRUCTION}
 {CRITERIA}
 
 Headlines:
@@ -266,7 +277,23 @@ def _validate_entry(entry):
     topic = entry.get("topic") if entry.get("topic") in TOPICS else "Other"
     importance = entry.get("importance") if entry.get("importance") in IMPORTANCES else "if_time"
     summary = (entry.get("summary_en") or "").strip() or FALLBACK_ANALYSIS["summary_en"]
-    return {"summary_en": summary, "topic": topic, "importance": importance}
+
+    # talking_points: list[str], max 2 items, only populated for must_read /
+    # worth_knowing. We trust Gemini on word count but enforce list shape +
+    # cap at 2 entries and strip empty strings.
+    tp_raw = entry.get("talking_points")
+    if importance == "if_time" or not isinstance(tp_raw, list):
+        talking_points = []
+    else:
+        talking_points = [p.strip() for p in tp_raw[:2]
+                          if isinstance(p, str) and p.strip()]
+
+    return {
+        "summary_en": summary,
+        "topic": topic,
+        "importance": importance,
+        "talking_points": talking_points,
+    }
 
 
 def analyze(title):

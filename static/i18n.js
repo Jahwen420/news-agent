@@ -36,6 +36,9 @@ window.TRANSLATIONS = {
     pickChinese: "中文",
     pickJapanese: "日本語",
 
+    talkingPoints: "💬 Talking points",
+    hideTalkingPoints: "💬 Hide",
+
     headerStats: (count, time) =>
       `${count} stor${count === 1 ? "y" : "ies"} · past 24h · Updated ${time}`,
     headerNever: "Pull latest to load your first batch of stories",
@@ -97,6 +100,9 @@ window.TRANSLATIONS = {
     showOriginal: "显示原文",
     pickChinese: "中文",
     pickJapanese: "日本語",
+
+    talkingPoints: "💬 谈话要点",
+    hideTalkingPoints: "💬 收起",
 
     headerStats: (count, time) =>
       `显示过去 24 小时内的 ${count} 条新闻 · 最后更新于 ${time}`,
@@ -161,6 +167,9 @@ window.TRANSLATIONS = {
     showOriginal: "原文を表示",
     pickChinese: "中文",
     pickJapanese: "日本語",
+
+    talkingPoints: "💬 会話のポイント",
+    hideTalkingPoints: "💬 閉じる",
 
     headerStats: (count, time) =>
       `過去24時間の${count}件のニュースを表示 · 最終更新 ${time}`,

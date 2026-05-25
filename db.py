@@ -3,6 +3,7 @@
 24h 滚动窗口:文章保留在 DB 里(不主动清理),
 get_recent_articles 在查询时过滤,只返回时间窗口内的。
 """
+import json
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -27,7 +28,8 @@ CREATE TABLE IF NOT EXISTS articles (
     title_zh     TEXT,           -- 按需翻译缓存
     summary_zh   TEXT,
     title_ja     TEXT,
-    summary_ja   TEXT
+    summary_ja   TEXT,
+    talking_points TEXT           -- JSON-encoded list[str], 0-2 items
 );
 CREATE INDEX IF NOT EXISTS idx_fetched ON articles(fetched_at);
 CREATE INDEX IF NOT EXISTS idx_published ON articles(published_at);
@@ -40,7 +42,23 @@ _TRANSLATABLE_LANGS = {"zh", "ja"}
 _DEFAULTS = {
     "title": None, "source": None, "published_at": None,
     "summary_en": None, "topic": None, "importance": None, "og_image": None,
+    "talking_points": None,
 }
+
+
+def _decode_talking_points(d):
+    """Mutate dict in place: JSON-decode talking_points column → list[str].
+    Missing / NULL / bad JSON → []. Always returns a list."""
+    raw = d.get("talking_points")
+    if not raw:
+        d["talking_points"] = []
+        return d
+    try:
+        parsed = json.loads(raw)
+        d["talking_points"] = parsed if isinstance(parsed, list) else []
+    except Exception:
+        d["talking_points"] = []
+    return d
 
 
 @contextmanager
@@ -61,7 +79,8 @@ def init_db():
         c.executescript(SCHEMA)
         # 加列迁移:老 DB 升级,新 DB 由 CREATE 处理。SQLite 没 IF NOT EXISTS for ADD COLUMN
         cols = {r["name"] for r in c.execute("PRAGMA table_info(articles)").fetchall()}
-        for col in ("title_zh", "summary_zh", "title_ja", "summary_ja"):
+        for col in ("title_zh", "summary_zh", "title_ja", "summary_ja",
+                    "talking_points"):
             if col not in cols:
                 c.execute(f"ALTER TABLE articles ADD COLUMN {col} TEXT")
 
@@ -70,7 +89,7 @@ def get_article(url):
     """按 URL 查一条文章(含所有翻译列)。找不到返回 None。"""
     with _conn() as c:
         row = c.execute("SELECT * FROM articles WHERE url = ?", (url,)).fetchone()
-        return dict(row) if row else None
+        return _decode_talking_points(dict(row)) if row else None
 
 
 def set_translation(url, lang, title_translated, summary_translated):
@@ -116,14 +135,19 @@ def save_articles(articles):
         row["url"] = a["url"]
         row["fetched_at"] = row.get("fetched_at") or now
         row["published_at"] = _normalize_published(row.get("published_at"))
+        # talking_points: list[str] → JSON string for storage. Empty list
+        # collapses to NULL so we don't waste bytes on "[]".
+        tp = row.get("talking_points")
+        if isinstance(tp, list):
+            row["talking_points"] = json.dumps(tp, ensure_ascii=False) if tp else None
         rows.append(row)
     with _conn() as c:
         c.executemany(
             """INSERT OR IGNORE INTO articles
                (url, title, source, published_at, fetched_at,
-                summary_en, topic, importance, og_image)
+                summary_en, topic, importance, og_image, talking_points)
                VALUES (:url, :title, :source, :published_at, :fetched_at,
-                       :summary_en, :topic, :importance, :og_image)""",
+                       :summary_en, :topic, :importance, :og_image, :talking_points)""",
             rows,
         )
 
@@ -147,7 +171,7 @@ def get_recent_articles(hours=24):
     with _conn() as c:
         rows = c.execute(
             """SELECT url, title, source, published_at, fetched_at,
-                      summary_en, topic, importance, og_image
+                      summary_en, topic, importance, og_image, talking_points
                FROM articles
                WHERE fetched_at >= ?
                   OR (published_at IS NOT NULL AND published_at >= ?)
@@ -160,4 +184,4 @@ def get_recent_articles(hours=24):
                  COALESCE(published_at, fetched_at) DESC""",
             (threshold, threshold),
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [_decode_talking_points(dict(r)) for r in rows]
