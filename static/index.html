@@ -73,7 +73,11 @@
   }
   /* "Loop" rotates on Pull latest; the trailing "." stays put */
   .brand-loop { display: inline-block; transform-origin: 50% 55%; }
-  .brand-loop.spinning { animation: spin 0.7s ease-in-out; }
+  @keyframes loop-spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .brand-loop.logo-spinning { animation: loop-spin 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
 
   .hero-headline {
     font-family: ui-serif, Georgia, "Times New Roman", serif;
@@ -100,6 +104,49 @@
       line-height: 1.55;
     }
   }
+
+  /* ─── Language nudge banner ─────────────────────────────────────── */
+  .lang-nudge {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 13px; color: var(--muted);
+    box-shadow: var(--shadow);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  @media (min-width: 600px) { .lang-nudge { margin-bottom: 28px; } }
+  .lang-nudge--hidden {
+    opacity: 0; pointer-events: none;
+    transform: translateY(-6px);
+    /* keep in flow while hidden so layout doesn't jump */
+    visibility: hidden;
+  }
+  .lang-nudge-btn {
+    all: unset;
+    display: inline-block;
+    cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .lang-nudge-btn:hover { border-bottom-color: var(--accent); }
+  .lang-nudge-close {
+    all: unset;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: auto;
+    width: 20px; height: 20px;
+    cursor: pointer;
+    color: var(--soft);
+    font-size: 16px; line-height: 1;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+  }
+  .lang-nudge-close:hover { color: var(--text); }
 
   /* ─── Actions: lang switcher + refresh ───────────────────────────── */
   .actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -296,11 +343,10 @@
   article {
     background: var(--card);
     border: 1px solid var(--border);
-    border-left: 3px solid transparent;
     border-radius: 20px;
     padding: 16px;
     box-shadow: var(--shadow);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-left-color 0.18s ease;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
     display: flex; gap: 12px; align-items: flex-start;
   }
   @media (min-width: 768px) { article { padding: 20px; gap: 14px; } }
@@ -309,12 +355,7 @@
     article:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-hover);
-      border-left-color: var(--accent);
     }
-  }
-  article.must-read-border { border-left-color: var(--must-color); }
-  @media (hover: hover) {
-    article.must-read-border:hover { border-left-color: var(--accent); }
   }
 
   .card-body { flex: 1; min-width: 0; }
@@ -485,6 +526,13 @@
           <span class="rr-label">Pull latest</span>
         </button>
       </div>
+    </div>
+    <div id="langNudge" class="lang-nudge lang-nudge--hidden" role="status" aria-live="polite">
+      🌐 Also available in
+      <button type="button" class="lang-nudge-btn" data-lang="zh">中文</button>
+      and
+      <button type="button" class="lang-nudge-btn" data-lang="ja">日本語</button>
+      <button type="button" class="lang-nudge-close" aria-label="Dismiss">×</button>
     </div>
     <h1 class="hero-headline">Don't be the last one to know.</h1>
     <p class="hero-sub">AI-curated brief of what's worth knowing today — for people who want to stay sharp in conversation.</p>
@@ -698,10 +746,8 @@
       ? `<img class="thumb" src="${esc(a.og_image)}" loading="lazy" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
       : "";
 
-    const borderClass = a.importance === "must_read" ? ' class="must-read-border"' : '';
-
     return `
-      <article${borderClass} data-url="${esc(a.url)}">
+      <article data-url="${esc(a.url)}">
         <div class="card-body">
           <div class="card-top">
             <span class="src-line">${esc(a.source)}${biasPart}</span>
@@ -835,10 +881,10 @@
     // Quick brand spin — visual feedback that the pull is happening
     const loopEl = document.querySelector(".brand-loop");
     if (loopEl) {
-      loopEl.classList.remove("spinning"); // allow retrigger
-      void loopEl.offsetWidth;             // reflow so the animation restarts
-      loopEl.classList.add("spinning");
-      setTimeout(() => loopEl.classList.remove("spinning"), 700);
+      loopEl.classList.remove("logo-spinning"); // allow retrigger
+      void loopEl.offsetWidth;                  // reflow so the animation restarts
+      loopEl.classList.add("logo-spinning");
+      setTimeout(() => loopEl.classList.remove("logo-spinning"), 700);
     }
     setRefreshButton(true);
     try {
@@ -962,6 +1008,44 @@
   }
 
   function changeLang(lang) { window.setUiLang(lang); applyI18n(); }
+
+  // ─── Language nudge ──────────────────────────────────────────────────
+  (function initLangNudge() {
+    // Only show if: (a) nudge hasn't been dismissed before, AND
+    //              (b) the user hasn't already picked a non-English UI lang
+    const nudgeEl = $("#langNudge");
+    if (!nudgeEl) return;
+    const alreadySeen  = localStorage.getItem("lang_nudge_shown");
+    const currentLang  = window.getUiLang();
+    if (alreadySeen || currentLang !== "en") return;
+
+    let dismissTimer = null;
+
+    function dismissNudge() {
+      clearTimeout(dismissTimer);
+      nudgeEl.classList.add("lang-nudge--hidden");
+      localStorage.setItem("lang_nudge_shown", "1");
+    }
+
+    // Show (small rAF delay so CSS transition plays on first paint)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        nudgeEl.classList.remove("lang-nudge--hidden");
+        dismissTimer = setTimeout(dismissNudge, 8000);
+      });
+    });
+
+    // Lang buttons: switch language + dismiss
+    nudgeEl.querySelectorAll(".lang-nudge-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        changeLang(btn.dataset.lang);
+        dismissNudge();
+      });
+    });
+
+    // × button: dismiss only
+    nudgeEl.querySelector(".lang-nudge-close").addEventListener("click", dismissNudge);
+  })();
 
   // ─── Boot ────────────────────────────────────────────────────────────
   $("#refresh").addEventListener("click", doRefresh);
