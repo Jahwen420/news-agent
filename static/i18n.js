@@ -10,7 +10,7 @@ window.TRANSLATIONS = {
     refresh: "Pull latest",
     refreshing: "Pulling…",
     heroHeadline: "Don't be the last one to know.",
-    heroSub: "AI-curated brief of what's worth knowing today.",
+    heroSub: "AI-curated news with talking points ready for tonight's dinner.",
     langSwitcherAria: "Language",
 
     filterAll: "Everything",
@@ -78,7 +78,7 @@ window.TRANSLATIONS = {
     refresh: "获取最新",
     refreshing: "获取中…",
     heroHeadline: "别成为最后一个知道的人。",
-    heroSub: "AI 精选今日值得知道的资讯。",
+    heroSub: "AI 精选今日要闻,附上今晚饭桌就能用的谈资。",
     langSwitcherAria: "语言",
 
     filterAll: "全部内容",
@@ -107,7 +107,7 @@ window.TRANSLATIONS = {
     pickChinese: "中文",
     pickJapanese: "日本語",
 
-    talkingPoints: "💬 谈话要点",
+    talkingPoints: "💬 谈资",
     hideTalkingPoints: "💬 收起",
 
     headerStats: (count, time) =>
@@ -148,7 +148,7 @@ window.TRANSLATIONS = {
     refresh: "最新を取得",
     refreshing: "取得中…",
     heroHeadline: "最後に知る人にならない。",
-    heroSub: "AI が厳選した、今日のニュース。",
+    heroSub: "AI が厳選した今日のニュース。今夜の会話で使える話のネタ付き。",
     langSwitcherAria: "言語",
 
     filterAll: "すべて",
@@ -177,7 +177,7 @@ window.TRANSLATIONS = {
     pickChinese: "中文",
     pickJapanese: "日本語",
 
-    talkingPoints: "💬 会話のポイント",
+    talkingPoints: "💬 話のネタ",
     hideTalkingPoints: "💬 閉じる",
 
     headerStats: (count, time) =>
