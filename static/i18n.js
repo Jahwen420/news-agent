@@ -9,6 +9,9 @@ window.TRANSLATIONS = {
     loading: "Loading…",
     refresh: "Pull latest",
     refreshing: "Pulling…",
+    heroHeadline: "Don't be the last one to know.",
+    heroSub: "AI-curated brief of what's worth knowing today.",
+    langSwitcherAria: "Language",
 
     filterAll: "Everything",
     topicGeopolitics: "Geopolitics",
@@ -74,6 +77,9 @@ window.TRANSLATIONS = {
     loading: "加载中…",
     refresh: "获取最新",
     refreshing: "获取中…",
+    heroHeadline: "别成为最后一个知道的人。",
+    heroSub: "AI 精选今日值得知道的资讯。",
+    langSwitcherAria: "语言",
 
     filterAll: "全部内容",
     topicGeopolitics: "地缘政治",
@@ -141,6 +147,9 @@ window.TRANSLATIONS = {
     loading: "読み込み中…",
     refresh: "最新を取得",
     refreshing: "取得中…",
+    heroHeadline: "最後に知る人にならない。",
+    heroSub: "AI が厳選した、今日のニュース。",
+    langSwitcherAria: "言語",
 
     filterAll: "すべて",
     topicGeopolitics: "地政学",

@@ -258,6 +258,10 @@
   }
   @media (min-width: 768px) { .brief-framing { font-size: 17px; } }
   @media (hover: hover) { .brief-item:hover .brief-framing { color: var(--accent); } }
+  /* When the brief item has no valid URL we render a <div> instead of <a>
+     — kill any pointer/hover affordance so users don't try to click it. */
+  .brief-item--nolink { cursor: default; }
+  @media (hover: hover) { .brief-item--nolink:hover .brief-framing { color: var(--text); } }
 
   .brief-empty {
     font-size: 14px; color: var(--muted);
@@ -370,7 +374,10 @@
     text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--muted);
     display: inline-flex; align-items: center; gap: 2px;
-    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    /* No overflow:hidden — was clipping the .bias-info::after tooltip.
+       Source names are short enough (BBC / NPR / Guardian / Nikkei Asia
+       / SCMP) that we don't need ellipsis here. */
+    min-width: 0; white-space: nowrap;
   }
   .time-ago { font-size: 11px; font-weight: 500; color: var(--soft); flex-shrink: 0; }
 
@@ -582,8 +589,8 @@
       <button type="button" class="lang-nudge-btn" data-lang="ja">日本語</button>
       <button type="button" class="lang-nudge-close" aria-label="Dismiss">×</button>
     </div>
-    <h1 class="hero-headline">Don't be the last one to know.</h1>
-    <p class="hero-sub">AI-curated brief of what's worth knowing today — for people who want to stay sharp in conversation.</p>
+    <h1 class="hero-headline" id="heroHeadline">Don't be the last one to know.</h1>
+    <p class="hero-sub" id="heroSub">AI-curated brief of what's worth knowing today.</p>
   </section>
 
   <!-- ── Today's Brief ── -->
@@ -717,15 +724,22 @@
   }
 
   function _briefItems(items) {
-    return items.map(item => `
-      <a class="brief-item" href="${esc(item.source_url || "#")}"
-         target="_blank" rel="noopener noreferrer">
+    return items.map(item => {
+      // Only render as a link when the URL is real-looking (http(s)). The
+      // backend already validates against the article URL set; this is
+      // defense-in-depth against malformed/empty source_url.
+      const url = String(item.source_url || "").trim();
+      const isLink = /^https?:\/\//i.test(url);
+      const content = `
         <span class="brief-emoji" aria-hidden="true">${esc(item.emoji)}</span>
         <div class="brief-content">
           <div class="brief-label">${esc(item.label)}</div>
           <div class="brief-framing">${esc(item.framing)}</div>
-        </div>
-      </a>`).join("");
+        </div>`;
+      return isLink
+        ? `<a class="brief-item" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${content}</a>`
+        : `<div class="brief-item brief-item--nolink">${content}</div>`;
+    }).join("");
   }
 
   function renderBriefSection() {
@@ -797,11 +811,18 @@
     // Talking points: render only when present + non-empty. Older articles
     // analyzed before this feature was added will have an empty array and
     // skip the section entirely.
+    //
+    // Bake both labels into data-* attributes at render time so the toggle
+    // never needs to re-call t() on click — that was rendering the raw key
+    // "hideTalkingPoints" in some environments.
     const tpArr = Array.isArray(a.talking_points) ? a.talking_points : [];
+    const tpShow = t("talkingPoints");
+    const tpHide = t("hideTalkingPoints");
     const tpHtml = tpArr.length > 0
       ? `<div class="talking-points-wrap">
-           <button class="talking-points-toggle" type="button" aria-expanded="false">
-             <span class="tp-label">${esc(t("talkingPoints"))}</span>
+           <button class="talking-points-toggle" type="button" aria-expanded="false"
+                   data-label-show="${esc(tpShow)}" data-label-hide="${esc(tpHide)}">
+             <span class="tp-label">${esc(tpShow)}</span>
            </button>
            <div class="talking-points">
              ${tpArr.map(p => `<div class="talking-point">${esc(p)}</div>`).join("")}
@@ -856,7 +877,8 @@
       });
     });
 
-    // Talking points expand/collapse
+    // Talking points expand/collapse — labels are pre-baked into the
+    // button's data-* attributes at render time, so we never call t() here.
     list.querySelectorAll(".talking-points-toggle").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -865,7 +887,9 @@
         const label = btn.querySelector(".tp-label");
         const expanded = panel.classList.toggle("expanded");
         btn.setAttribute("aria-expanded", String(expanded));
-        label.textContent = expanded ? t("hideTalkingPoints") : t("talkingPoints");
+        label.textContent = expanded
+          ? (btn.dataset.labelHide || label.textContent)
+          : (btn.dataset.labelShow || label.textContent);
       });
     });
 
@@ -921,7 +945,9 @@
     const label = btn.querySelector(".rr-label");
     btn.disabled = busy;
     btn.classList.toggle("spinning", busy);
-    label.textContent = busy ? t("refreshing") : t("refresh");
+    const txt = busy ? t("refreshing") : t("refresh");
+    label.textContent = txt;
+    btn.setAttribute("aria-label", txt);
   }
 
   function stopPolling() {
@@ -1091,9 +1117,25 @@
 
   // ─── i18n apply ──────────────────────────────────────────────────────
   function applyI18n() {
-    document.title = "Loop.";
-    $("#refresh").querySelector(".rr-label").textContent =
-      state.refreshing ? t("refreshing") : t("refresh");
+    document.title = t("pageTitle");
+
+    // Hero text — was hardcoded in HTML, now driven by i18n so the headline
+    // and subhead actually swap when you click EN/中/日.
+    const headline = $("#heroHeadline");
+    if (headline) headline.textContent = t("heroHeadline");
+    const sub = $("#heroSub");
+    if (sub) sub.textContent = t("heroSub");
+
+    // Refresh button label + aria-label
+    const refreshBtn = $("#refresh");
+    const refreshLabel = state.refreshing ? t("refreshing") : t("refresh");
+    refreshBtn.querySelector(".rr-label").textContent = refreshLabel;
+    refreshBtn.setAttribute("aria-label", refreshLabel);
+
+    // Lang switcher group aria-label
+    const switcher = $("#langSwitcher");
+    if (switcher) switcher.setAttribute("aria-label", t("langSwitcherAria"));
+
     document.querySelectorAll("#langSwitcher button").forEach(b => {
       b.classList.toggle("active", b.dataset.lang === window.getUiLang());
     });

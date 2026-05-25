@@ -354,6 +354,8 @@ GOOD: 'Taiwan's arms deal is on hold because the US ran out of Patriot missiles 
 Return ONLY valid JSON:
 [{{"emoji": "...", "label": "...", "framing": "...", "source_url": "..."}}]
 
+IMPORTANT: source_url MUST be copied verbatim from the URL listed under the item you picked. Do NOT invent URLs, do NOT abbreviate, do NOT use relative paths. If you cannot find an exact match, omit the field — do not fabricate.
+
 News items:
 {items}"""
 
@@ -367,10 +369,15 @@ def generate_brief(articles):
     """
     if not articles:
         return []
+    # Include each article's URL so Gemini can echo it back verbatim rather
+    # than fabricating one. We then validate the response against this set.
     items_text = "\n".join(
-        f"{i+1}. [{a.get('source', '')}] {a.get('title', '')} — {a.get('summary_en', '')}"
+        f"{i+1}. [{a.get('source', '')}] {a.get('title', '')}\n"
+        f"   URL: {a.get('url', '')}\n"
+        f"   Summary: {a.get('summary_en', '')}"
         for i, a in enumerate(articles)
     )
+    allowed_urls = {a.get("url", "") for a in articles if a.get("url")}
     prompt = BRIEF_PROMPT.format(items=items_text)
     try:
         resp = client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
@@ -390,6 +397,14 @@ def generate_brief(articles):
             label      = str(item.get("label")      or "").strip()
             framing    = str(item.get("framing")    or "").strip()
             source_url = str(item.get("source_url") or "").strip()
+            # Reject anything that isn't an exact match in our input set —
+            # Gemini sometimes fabricates plausible-looking but non-existent
+            # URLs that 404 when clicked. Empty string = "render as text".
+            if source_url not in allowed_urls:
+                if source_url:
+                    print(f"[generate_brief] rejected fabricated URL: {source_url}",
+                          flush=True)
+                source_url = ""
             if label and framing:
                 result.append({"emoji": emoji, "label": label,
                                 "framing": framing, "source_url": source_url})
