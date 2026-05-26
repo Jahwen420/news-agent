@@ -7,7 +7,7 @@ import os
 import threading
 import time
 from collections import defaultdict, deque
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,7 +69,7 @@ def _run_generate_brief():
         if items:
             with _brief_lock:
                 _brief_cache["items"] = items
-                _brief_cache["generated_at"] = datetime.now().isoformat(timespec="seconds")
+                _brief_cache["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
             print(f"[brief] cached {len(items)} items", flush=True)
         else:
             print("[brief] generation returned no items", flush=True)
@@ -140,7 +140,7 @@ def _run_refresh():
 
         _set_state(
             status="done",
-            finished_at=datetime.now().isoformat(timespec="seconds"),
+            finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
             stats={"scraped": n_total, "new": n_new, "existing": n_existing},
             sources_ok=sources_ok,
             sources_failed=sources_failed,
@@ -152,7 +152,7 @@ def _run_refresh():
         print(f"ERROR: refresh failed — {msg}", flush=True)
         _set_state(
             status="error",
-            finished_at=datetime.now().isoformat(timespec="seconds"),
+            finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
             error=msg,
         )
 
@@ -172,7 +172,7 @@ def _scheduled_refresh():
             return
         refresh_state.update({
             "status": "running",
-            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "finished_at": None,
             "stats": None,
             "sources_ok": [],
@@ -302,7 +302,7 @@ def refresh(request: Request):
         # 重置状态,锁内一次性写好,避免半半态被读到
         refresh_state.update({
             "status": "running",
-            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "finished_at": None,
             "stats": None,
             "sources_ok": [],

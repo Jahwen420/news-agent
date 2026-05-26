@@ -7,7 +7,7 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # 部署平台常会把持久卷挂到固定路径(如 Fly.io 的 /data),用 DATABASE_PATH 覆盖。
@@ -134,7 +134,10 @@ def save_articles(articles):
     """UPSERT by url。已存在的 url 不更新(保留原 fetched_at 和已有分析结果)。"""
     if not articles:
         return
-    now = datetime.now().isoformat(timespec="seconds")
+    # UTC-aware ISO (with +00:00 offset) so browsers in any timezone
+    # parse fetched_at correctly. Naive datetimes would be interpreted as
+    # the browser's local time → time-ago labels off by the tz delta.
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows = []
     for a in articles:
         row = {**_DEFAULTS, **a}
@@ -173,7 +176,9 @@ def get_recent_articles(hours=24):
 
     排序:must_read > worth_knowing > if_time,同级按时间新→旧。
     """
-    threshold = (datetime.now() - timedelta(hours=hours)).isoformat(timespec="seconds")
+    # UTC threshold to match the UTC fetched_at writes; string-comparable
+    # against ISO-with-offset values stored in the DB.
+    threshold = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
     with _conn() as c:
         rows = c.execute(
             """SELECT url, title, source, published_at, fetched_at,

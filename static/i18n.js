@@ -9,7 +9,7 @@ window.TRANSLATIONS = {
     loading: "Loading…",
     refresh: "Pull latest",
     refreshing: "Pulling…",
-    heroHeadline: "Don't be the last one to know.",
+    heroHeadline: "Stay in the loop.",
     langSwitcherAria: "Language",
 
     filterAll: "Everything",
@@ -79,7 +79,7 @@ window.TRANSLATIONS = {
     loading: "加载中…",
     refresh: "获取最新",
     refreshing: "获取中…",
-    heroHeadline: "别成为最后一个知道的人。",
+    heroHeadline: "保持信息同步。",
     langSwitcherAria: "语言",
 
     filterAll: "全部内容",
@@ -151,7 +151,7 @@ window.TRANSLATIONS = {
     loading: "読み込み中…",
     refresh: "最新を取得",
     refreshing: "取得中…",
-    heroHeadline: "最後に知る人にならない。",
+    heroHeadline: "ループに入れ。",
     langSwitcherAria: "言語",
 
     filterAll: "すべて",

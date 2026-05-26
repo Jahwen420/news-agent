@@ -613,6 +613,29 @@
   .bias-info:focus::after,
   .bias-info:focus-visible::after { opacity: 1; }
 
+  /* Site footer — credit + repo link, not localized (signature stays EN) */
+  .site-footer {
+    margin-top: 48px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .site-footer a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(0,0,0,0.18);
+    text-underline-offset: 2px;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    .site-footer a { text-decoration-color: rgba(255,255,255,0.22); }
+  }
+  .site-footer a:hover {
+    color: var(--text);
+    text-decoration-color: currentColor;
+  }
+
   /* Empty + Toast */
   .empty {
     text-align: center; padding: 60px 16px;
@@ -658,7 +681,7 @@
       <button type="button" class="lang-nudge-btn" data-lang="ja">日本語</button>
       <button type="button" class="lang-nudge-close" aria-label="Dismiss">×</button>
     </div>
-    <h1 class="hero-headline" id="heroHeadline">Don't be the last one to know.</h1>
+    <h1 class="hero-headline" id="heroHeadline">Stay in the loop.</h1>
   </section>
 
   <!-- ── Today's Brief ── -->
@@ -676,6 +699,13 @@
   <main class="feed" id="list">
     <div class="empty" id="initialEmpty"></div>
   </main>
+
+  <!-- ── Footer (English in every UI language) ── -->
+  <footer class="site-footer">
+    Built by <a href="https://github.com/Jahwen420" target="_blank" rel="noopener noreferrer">Jiawen Huang</a>
+    · May 2026 ·
+    <a href="https://github.com/Jahwen420/news-agent" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+  </footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -856,7 +886,10 @@
     const [iE, iLabelKey, iC] = IMP[a.importance] || ["", "", ""];
     const bias = SOURCE_BIAS[a.source];
     const biasLabel = bias ? t(BIAS_I18N[bias] || "biasCenter") : "";
-    const rel = relativeTime(a.published_at);
+    // Fall back to fetched_at if the source didn't expose a published_at —
+    // BBC / NPR / Nikkei Asia don't, so without this ~60% of cards have
+    // no time-ago label and the feed looks inconsistent.
+    const rel = relativeTime(a.published_at || a.fetched_at);
     const timeHtml = rel ? `<span class="time-ago">${esc(rel)}</span>` : "";
     const biasPart = bias
       ? ` · ${esc(biasLabel)}<button class="bias-info" type="button" aria-label="About bias rating" data-tooltip="${esc(t("biasTooltip"))}"><span>i</span></button>`
@@ -1118,31 +1151,20 @@
   async function doRefresh() {
     if (state.refreshing) return;
     // Quick brand spin — visual feedback that the pull is happening.
-    // Diagnostic logs so we can see in DevTools whether the trigger fires.
+    // Two paths in parallel: CSS class + Web Animations API. WAAPI is the
+    // reliable one; the class is kept for hover/theme compatibility.
     const loopEl = document.querySelector(".brand-loop");
-    console.log("[loop-spin] element found:", loopEl);
     if (loopEl) {
-      console.log("[loop-spin] classes before:", loopEl.className);
       loopEl.classList.remove("logo-spinning"); // allow retrigger
       void loopEl.offsetWidth;                  // reflow so the animation restarts
       loopEl.classList.add("logo-spinning");
-      console.log("[loop-spin] classes after:", loopEl.className);
-      // Belt-and-suspenders: also drive the animation via Web Animations API
-      // in case the class-based animation gets nuked by browser cache or a
-      // CSS specificity surprise. WAAPI runs regardless of stylesheet state.
       if (typeof loopEl.animate === "function") {
         loopEl.animate(
           [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
           { duration: 700, easing: "cubic-bezier(0.4, 0, 0.2, 1)" }
         );
-        console.log("[loop-spin] WAAPI animation queued");
       }
-      setTimeout(() => {
-        loopEl.classList.remove("logo-spinning");
-        console.log("[loop-spin] cleanup done");
-      }, 700);
-    } else {
-      console.warn("[loop-spin] .brand-loop NOT FOUND in DOM");
+      setTimeout(() => loopEl.classList.remove("logo-spinning"), 700);
     }
     setRefreshButton(true);
     try {
